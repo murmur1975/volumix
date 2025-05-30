@@ -1,0 +1,36 @@
+﻿<Window x:Class="Volumix.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Volumix" Height="500" Width="900">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+
+        <Button Grid.Row="0" Grid.Column="0" Content="動画を選択" Name="btnSelectVideo" Margin="0,0,10,10" Width="120" Height="30" Click="btnSelectVideo_Click"/>
+        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="元のラウドネス値 (LKFS): " FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock Name="txtOriginalLoudness" Text="-" Margin="5,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+        <MediaElement Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Name="mediaPreview" LoadedBehavior="Manual" UnloadedBehavior="Manual" Stretch="Uniform" Width="400" Height="300" Margin="0,0,10,0" />
+        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button Name="btnPlay" Content="再生" Width="60" Margin="0,0,10,0" Click="btnPlay_Click"/>
+            <Button Name="btnPause" Content="停止" Width="60" Margin="0,0,10,0" Click="btnPause_Click"/>
+            <Slider Name="sliderPosition" Width="200" Minimum="0" Maximum="100" Value="0" ValueChanged="sliderPosition_ValueChanged"/>
+            <TextBlock Name="txtCurrentTime" Text="00:00" Margin="10,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+            <TextBlock Text="ラウドネス調整 (LKFS):" VerticalAlignment="Center"/>
+            <Slider Name="sliderLoudness" Width="200" Minimum="-40" Maximum="0" Value="0" Margin="10,0,0,0" ValueChanged="sliderLoudness_ValueChanged"/>
+            <TextBlock Name="txtTargetLoudness" Text="0" Margin="10,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Button Grid.Row="3" Grid.Column="1" Content="調整後の動画を保存" Name="btnSave" Width="180" Height="30" HorizontalAlignment="Right" Margin="0,10,0,0" Click="btnSave_Click"/>
+    </Grid>
+</Window>
