@@ -204,7 +204,7 @@ namespace Volumix
             }
         }
 
-        private void SaveAdjustedVideo(string savePath)
+        private async void SaveAdjustedVideo(string savePath)
         {
             var ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
             if (!File.Exists(ffmpegPath))
@@ -213,7 +213,7 @@ namespace Volumix
                 return;
             }
             double targetLoudness = sliderLoudness.Value;
-            var args = $"-i \"{videoPath}\" -c:v copy -af loudnorm=I={targetLoudness}:TP=-2:LRA=11 \"{savePath}\"";
+            var args = $"-y -i \"{videoPath}\" -c:v copy -af loudnorm=I={targetLoudness}:TP=-2:LRA=11 \"{savePath}\"";
             var psi = new ProcessStartInfo(ffmpegPath, args)
             {
                 RedirectStandardOutput = true,
@@ -221,9 +221,30 @@ namespace Volumix
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            var proc = Process.Start(psi);
-            proc.WaitForExit();
-            MessageBox.Show("保存が完了しました。");
+            try
+            {
+                string error = "";
+                await Task.Run(() =>
+                {
+                    using (var proc = Process.Start(psi))
+                    {
+                        error = proc.StandardError.ReadToEnd();
+                        proc.WaitForExit();
+                    }
+                });
+                if (!File.Exists(savePath))
+                {
+                    MessageBox.Show("保存に失敗しました。\n\nffmpeg出力:\n" + error);
+                }
+                else
+                {
+                    MessageBox.Show("保存が完了しました。");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("保存中にエラーが発生しました: " + ex.Message);
+            }
         }
     }
 }
