@@ -31,8 +31,10 @@
         </StackPanel>
         <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
             <TextBlock Text="ラウドネス調整 (LKFS):" VerticalAlignment="Center"/>
-            <Slider Name="sliderLoudness" Width="200" Minimum="-40" Maximum="0" Value="0" Margin="10,0,0,0" ValueChanged="sliderLoudness_ValueChanged"/>
+            <Slider Name="sliderLoudness" Width="200" Minimum="-40" Maximum="0" Value="0" Margin="10,0,0,0" ValueChanged="sliderLoudness_ValueChanged" Height="18"/>
             <TextBlock Name="txtTargetLoudness" Text="0" Margin="10,0,0,0" VerticalAlignment="Center"/>
+            <Button x:Name="btnSetMinus24" Content="-24" Width="50" Height="30" Margin="5"
+                    Click="btnSetMinus24_Click"/>
         </StackPanel>
         <Button Grid.Row="3" Grid.Column="1" Content="調整後の動画を保存" Name="btnSave" Width="180" Height="30" HorizontalAlignment="Right" Margin="0,10,0,0" Click="btnSave_Click"/>
     </Grid>

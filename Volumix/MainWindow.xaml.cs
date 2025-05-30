@@ -197,7 +197,18 @@ namespace Volumix
 
         private void btnSave_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new SaveFileDialog { Filter = "MP4ファイル|*.mp4" };
+            // 元ファイル名と拡張子取得
+            var baseName = Path.GetFileNameWithoutExtension(videoPath);
+            var ext = Path.GetExtension(videoPath);
+            // 調整後LKFS値をファイル名に追加
+            var targetLoudness = sliderLoudness.Value.ToString("F2").Replace('.', '_');
+            var defaultFileName = $"{baseName}_LKFS{targetLoudness}{ext}";
+
+            var dlg = new SaveFileDialog
+            {
+                Filter = "MP4ファイル|*.mp4",
+                FileName = defaultFileName
+            };
             if (dlg.ShowDialog() == true)
             {
                 SaveAdjustedVideo(dlg.FileName);
@@ -245,6 +256,11 @@ namespace Volumix
             {
                 MessageBox.Show("保存中にエラーが発生しました: " + ex.Message);
             }
+        }
+
+        private void btnSetMinus24_Click(object sender, RoutedEventArgs e)
+        {
+            sliderLoudness.Value = -24.0;
         }
     }
 }
