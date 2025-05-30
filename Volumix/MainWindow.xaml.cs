@@ -96,6 +96,7 @@ namespace Volumix
         private void sliderLoudness_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             UpdateMediaPreviewVolume();
+            txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
         }
 
         private void btnPlay_Click(object sender, RoutedEventArgs e)
@@ -257,58 +258,36 @@ namespace Volumix
 
         private void btnSetMinus24_Click(object sender, RoutedEventArgs e)
         {
-            // まずテキストボックスも-24に反映
-            txtLoudnessInput.Text = "-24.00";
-            // Valueをセット（ValueChangedイベントで音量も反映される）
             sliderLoudness.Value = -24.0;
+            txtTargetLoudness.Text = "-24.00";
         }
 
-        private void txtLoudnessInput_LostFocus(object sender, RoutedEventArgs e)
+        private void txtTargetLoudness_LostFocus(object sender, RoutedEventArgs e)
         {
-            UpdateLoudnessFromInput();
+            UpdateLoudnessFromTargetBox();
         }
 
-        private void txtLoudnessInput_KeyDown(object sender, KeyEventArgs e)
+        private void txtTargetLoudness_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                UpdateLoudnessFromInput();
+                UpdateLoudnessFromTargetBox();
             }
         }
 
-        private void UpdateLoudnessFromInput()
+        private void UpdateLoudnessFromTargetBox()
         {
-            if (double.TryParse(txtLoudnessInput.Text, out double value))
+            if (double.TryParse(txtTargetLoudness.Text, out double value))
             {
                 if (value < sliderLoudness.Minimum) value = sliderLoudness.Minimum;
                 if (value > sliderLoudness.Maximum) value = sliderLoudness.Maximum;
-                // 小数点以下第2位までに丸める
                 value = Math.Round(value, 2, MidpointRounding.AwayFromZero);
-                txtLoudnessInput.Text = value.ToString("F2");
                 sliderLoudness.Value = value;
+                txtTargetLoudness.Text = value.ToString("F2");
             }
             else
             {
-                // 入力が不正な場合は現在の値に戻す
-                txtLoudnessInput.Text = sliderLoudness.Value.ToString("F2");
-            }
-        }
-
-        private void txtLoudnessInput_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            // 入力中のカーソル位置を保存
-            int selectionStart = txtLoudnessInput.SelectionStart;
-
-            // 入力値をパースして小数点以下2桁に制限
-            if (double.TryParse(txtLoudnessInput.Text, out double value))
-            {
-                string formatted = value.ToString("F2");
-                if (txtLoudnessInput.Text != formatted)
-                {
-                    txtLoudnessInput.Text = formatted;
-                    // カーソル位置を末尾に
-                    txtLoudnessInput.SelectionStart = txtLoudnessInput.Text.Length;
-                }
+                txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
             }
         }
 
@@ -317,7 +296,6 @@ namespace Volumix
         {
             double diff = sliderLoudness.Value - originalLoudness;
             mediaPreview.Volume = Math.Pow(10, diff / 20.0);
-            txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
         }
     }
 }
