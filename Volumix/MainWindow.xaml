@@ -23,7 +23,10 @@
         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
             <Button Name="btnPlay" Content="再生" Width="60" Margin="0,0,10,0" Click="btnPlay_Click"/>
             <Button Name="btnPause" Content="停止" Width="60" Margin="0,0,10,0" Click="btnPause_Click"/>
-            <Slider Name="sliderPosition" Width="200" Minimum="0" Maximum="100" Value="0" ValueChanged="sliderPosition_ValueChanged"/>
+            <Slider Name="sliderPosition" Width="200" Minimum="0" Maximum="100" Value="0"
+                    ValueChanged="sliderPosition_ValueChanged"
+                    PreviewMouseLeftButtonDown="sliderPosition_PreviewMouseLeftButtonDown"
+                    PreviewMouseLeftButtonUp="sliderPosition_PreviewMouseLeftButtonUp"/>
             <TextBlock Name="txtCurrentTime" Text="00:00" Margin="10,0,0,0" VerticalAlignment="Center"/>
         </StackPanel>
         <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">

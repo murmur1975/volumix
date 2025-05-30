@@ -16,6 +16,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.Win32;
+using System.Windows.Threading;
+using System.Windows.Controls.Primitives;
+using Path = System.IO.Path; // 明示的にSystem.IO.Pathを使用するよう指定
 
 namespace Volumix
 {
@@ -27,9 +30,18 @@ namespace Volumix
         private string videoPath;
         private double originalLoudness = 0;
 
+        // 追加: 再生位置更新用タイマーとフラグ
+        private DispatcherTimer positionTimer;
+        private bool isSliderDragging = false;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            // タイマー初期化
+            positionTimer = new DispatcherTimer();
+            positionTimer.Interval = TimeSpan.FromMilliseconds(500);
+            positionTimer.Tick += PositionTimer_Tick;
         }
 
         private void btnSelectVideo_Click(object sender, RoutedEventArgs e)
@@ -40,14 +52,21 @@ namespace Volumix
                 videoPath = dlg.FileName;
                 mediaPreview.Source = new Uri(videoPath);
                 mediaPreview.Stop();
+                sliderPosition.Value = 0;
+                txtCurrentTime.Text = "00:00";
                 CalculateLoudness();
             }
         }
 
         private void CalculateLoudness()
         {
-            // ffmpegでラウドネス計算
-            var ffmpegPath = "ffmpeg"; // ffmpeg.exeのパス
+            // ffmpeg.exeのパスをアプリと同じフォルダに配置した場合
+            var ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+            if (!File.Exists(ffmpegPath))
+            {
+                MessageBox.Show("ffmpeg.exeが見つかりません: " + ffmpegPath);
+                return;
+            }
             var args = $"-i \"{videoPath}\" -af loudnorm=I=-23:TP=-2:LRA=11:print_format=summary -f null -";
             var psi = new ProcessStartInfo(ffmpegPath, args)
             {
@@ -84,21 +103,96 @@ namespace Volumix
 
         private void btnPlay_Click(object sender, RoutedEventArgs e)
         {
-            mediaPreview.Play();
+            if (mediaPreview.Source != null)
+            {
+                mediaPreview.Play();
+                positionTimer.Start();
+            }
         }
 
         private void btnPause_Click(object sender, RoutedEventArgs e)
         {
             mediaPreview.Pause();
+            positionTimer.Stop();
         }
 
+        // タイマーで再生位置をスライダーに反映
+        private void PositionTimer_Tick(object sender, EventArgs e)
+        {
+            if (mediaPreview.NaturalDuration.HasTimeSpan && !isSliderDragging)
+            {
+                double total = mediaPreview.NaturalDuration.TimeSpan.TotalSeconds;
+                double current = mediaPreview.Position.TotalSeconds;
+                sliderPosition.Value = (current / total) * 100;
+                txtCurrentTime.Text = TimeSpan.FromSeconds(current).ToString(@"mm\:ss");
+            }
+        }
+
+        // スライダー操作開始
+        private void sliderPosition_DragStarted(object sender, DragStartedEventArgs e)
+        {
+            isSliderDragging = true;
+        }
+
+        // スライダー操作終了
+        private void sliderPosition_DragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            isSliderDragging = false;
+            SetMediaPositionFromSlider();
+        }
+
+        // スライダー値変更時
         private void sliderPosition_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (isSliderDragging) return;
+            SetMediaPositionFromSlider();
+        }
+
+        // スライダー値からMediaElementの再生位置を設定
+        private void SetMediaPositionFromSlider()
         {
             if (mediaPreview.NaturalDuration.HasTimeSpan)
             {
-                var pos = TimeSpan.FromSeconds(mediaPreview.NaturalDuration.TimeSpan.TotalSeconds * sliderPosition.Value / 100);
-                mediaPreview.Position = pos;
+                double total = mediaPreview.NaturalDuration.TimeSpan.TotalSeconds;
+                double pos = total * sliderPosition.Value / 100;
+                mediaPreview.Position = TimeSpan.FromSeconds(pos);
+                txtCurrentTime.Text = TimeSpan.FromSeconds(pos).ToString(@"mm\:ss");
             }
+        }
+
+        private void sliderPosition_Loaded(object sender, RoutedEventArgs e)
+        {
+            var slider = sender as Slider;
+            if (slider != null)
+            {
+                var thumb = GetThumbFromSlider(slider);
+                if (thumb != null)
+                {
+                    thumb.DragStarted += sliderPosition_DragStarted;
+                    thumb.DragCompleted += sliderPosition_DragCompleted;
+                }
+            }
+        }
+
+        private Thumb GetThumbFromSlider(Slider slider)
+        {
+            if (slider.Template != null)
+            {
+                return slider.Template.FindName("PART_Track", slider) as Thumb;
+            }
+            return null;
+        }
+
+        private void sliderPosition_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // スライダー操作中の処理を記述
+            mediaPreview.Pause();
+        }
+
+        private void sliderPosition_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // スライダー操作終了後の処理を記述
+            mediaPreview.Play();
         }
 
         private void btnSave_Click(object sender, RoutedEventArgs e)
@@ -112,8 +206,12 @@ namespace Volumix
 
         private void SaveAdjustedVideo(string savePath)
         {
-            // ffmpegで音声のみラウドネス調整して保存
-            var ffmpegPath = "ffmpeg";
+            var ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+            if (!File.Exists(ffmpegPath))
+            {
+                MessageBox.Show("ffmpeg.exeが見つかりません: " + ffmpegPath);
+                return;
+            }
             double targetLoudness = sliderLoudness.Value;
             var args = $"-i \"{videoPath}\" -c:v copy -af loudnorm=I={targetLoudness}:TP=-2:LRA=11 \"{savePath}\"";
             var psi = new ProcessStartInfo(ffmpegPath, args)
