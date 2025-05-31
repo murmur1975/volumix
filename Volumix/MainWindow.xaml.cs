@@ -34,6 +34,7 @@ namespace Volumix
         private DispatcherTimer positionTimer;
         private bool isSliderDragging = false;
 
+        // コンストラクタでイベント登録
         public MainWindow()
         {
             InitializeComponent();
@@ -42,6 +43,10 @@ namespace Volumix
             positionTimer = new DispatcherTimer();
             positionTimer.Interval = TimeSpan.FromMilliseconds(500);
             positionTimer.Tick += PositionTimer_Tick;
+
+            // MediaElementのイベント登録
+            mediaPreview.MediaOpened += mediaPreview_MediaOpened;
+            mediaPreview.MediaFailed += mediaPreview_MediaFailed;
         }
 
         private void btnSelectVideo_Click(object sender, RoutedEventArgs e)
@@ -50,12 +55,27 @@ namespace Volumix
             if (dlg.ShowDialog() == true)
             {
                 videoPath = dlg.FileName;
+                // 読込中メッセージ表示
+                txtLoading.Visibility = Visibility.Visible;
+
                 mediaPreview.Source = new Uri(videoPath);
                 mediaPreview.Stop();
                 sliderPosition.Value = 0;
                 txtCurrentTime.Text = "00:00";
-                CalculateLoudness();
             }
+        }
+
+        // MediaElementのMediaOpened/MediaFailedイベントでメッセージを消す
+        private void mediaPreview_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            txtLoading.Visibility = Visibility.Collapsed;
+            CalculateLoudness();
+        }
+
+        private void mediaPreview_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            txtLoading.Visibility = Visibility.Collapsed;
+            MessageBox.Show("動画の読み込みに失敗しました。");
         }
 
         private void CalculateLoudness()
@@ -85,7 +105,10 @@ namespace Volumix
                 originalLoudness = double.Parse(match.Groups[1].Value);
                 txtOriginalLoudness.Text = originalLoudness.ToString("F2");
                 sliderLoudness.Value = originalLoudness;
-                txtTargetLoudness.Text = originalLoudness.ToString("F2");
+                if (txtTargetLoudness != null)
+                {
+                    txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
+                }
             }
             else
             {
@@ -96,7 +119,10 @@ namespace Volumix
         private void sliderLoudness_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             UpdateMediaPreviewVolume();
-            txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
+            if (txtTargetLoudness != null)
+            {
+                txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
+            }
         }
 
         private void btnPlay_Click(object sender, RoutedEventArgs e)
@@ -198,9 +224,13 @@ namespace Volumix
             // 元ファイル名と拡張子取得
             var baseName = Path.GetFileNameWithoutExtension(videoPath);
             var ext = Path.GetExtension(videoPath);
+
+            // 既存の _LKFS-24_26 のような部分を除去
+            baseName = Regex.Replace(baseName, @"_LKFS-?\d+_\d{2}$", "");
+
             // 調整後LKFS値をファイル名に追加
             var targetLoudness = sliderLoudness.Value.ToString("F2").Replace('.', '_');
-            var defaultFileName = $"{baseName}_LKFS{targetLoudness}{ext}";
+            var defaultFileName = $"{baseName}_LKFS{(sliderLoudness.Value < 0 ? "" : "-")}{targetLoudness}{ext}";
 
             var dlg = new SaveFileDialog
             {
@@ -259,7 +289,10 @@ namespace Volumix
         private void btnSetMinus24_Click(object sender, RoutedEventArgs e)
         {
             sliderLoudness.Value = -24.0;
-            txtTargetLoudness.Text = "-24.00";
+            if (txtTargetLoudness != null)
+            {
+                txtTargetLoudness.Text = "-24.00";
+            }
         }
 
         private void txtTargetLoudness_LostFocus(object sender, RoutedEventArgs e)
@@ -283,11 +316,17 @@ namespace Volumix
                 if (value > sliderLoudness.Maximum) value = sliderLoudness.Maximum;
                 value = Math.Round(value, 2, MidpointRounding.AwayFromZero);
                 sliderLoudness.Value = value;
-                txtTargetLoudness.Text = value.ToString("F2");
+                if (txtTargetLoudness != null)
+                {
+                    txtTargetLoudness.Text = value.ToString("F2");
+                }
             }
             else
             {
-                txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
+                if (txtTargetLoudness != null)
+                {
+                    txtTargetLoudness.Text = sliderLoudness.Value.ToString("F2");
+                }
             }
         }
 
