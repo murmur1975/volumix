@@ -295,6 +295,24 @@ namespace Volumix
             }
         }
 
+        private void btnSetMinus20_Click(object sender, RoutedEventArgs e)
+        {
+            sliderLoudness.Value = -20.0;
+            if (txtTargetLoudness != null)
+            {
+                txtTargetLoudness.Text = "-20.00";
+            }
+        }
+
+        private void btnSetMinus18_Click(object sender, RoutedEventArgs e)
+        {
+            sliderLoudness.Value = -18.0;
+            if (txtTargetLoudness != null)
+            {
+                txtTargetLoudness.Text = "-18.00";
+            }
+        }
+
         private void txtTargetLoudness_LostFocus(object sender, RoutedEventArgs e)
         {
             UpdateLoudnessFromTargetBox();

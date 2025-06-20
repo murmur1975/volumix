@@ -44,11 +44,11 @@
         </StackPanel>
         <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
             <TextBlock Text="ラウドネス調整 (LKFS):" VerticalAlignment="Center"/>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Width="265">
                 <Slider x:Name="sliderLoudness"
                         Minimum="-40.0"
                         Maximum="-5.0"
-                        Width="200"
+                        Width="160"
                         ValueChanged="sliderLoudness_ValueChanged"/>
                 <TextBox x:Name="txtTargetLoudness"
                          Width="60"
@@ -61,6 +61,8 @@
                 <TextBlock Text="LKFS" Margin="5,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
             <Button x:Name="btnSetMinus24" Content="-24" Width="40" Height="30" Margin="5" Click="btnSetMinus24_Click"/>
+            <Button x:Name="btnSetMinus20" Content="-20" Width="40" Height="30" Margin="5" Click="btnSetMinus20_Click"/>
+            <Button x:Name="btnSetMinus18" Content="-18" Width="40" Height="30" Margin="5" Click="btnSetMinus18_Click"/>
         </StackPanel>
         <Button Grid.Row="3" Grid.Column="1" Content="調整後の動画を保存" Name="btnSave" Width="180" Height="30" HorizontalAlignment="Right" Margin="0,10,0,0" Click="btnSave_Click"/>
         <TextBlock Margin="0,45,10,192" Grid.Column="1" Grid.Row="2"><Run Text="■利用時の注意"/><LineBreak/><Run Text="　"/><Run Text="プレビュー"/><Run Text="時は元動画の音量より音は大きくなりませんが保存されたファイル"/><Run Text="の音"/><Run Text="は大き"/><Run Language="ja-jp" Text="くなっています"/></TextBlock>
