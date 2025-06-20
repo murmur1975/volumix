@@ -54,7 +54,7 @@
                          Width="60"
                          Margin="5,0,0,0"
                          VerticalAlignment="Center"
-                         Text="{Binding Value, ElementName=sliderLoudness, StringFormat=F2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Text="{Binding Value, ElementName=sliderLoudness, StringFormat=F2, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                          LostFocus="txtTargetLoudness_LostFocus"
                          KeyDown="txtTargetLoudness_KeyDown"
                          />
