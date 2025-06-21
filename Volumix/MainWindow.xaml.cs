@@ -18,6 +18,7 @@ using System.Windows.Shapes;
 using Microsoft.Win32;
 using System.Windows.Threading;
 using System.Windows.Controls.Primitives;
+using Newtonsoft.Json.Linq; // 先頭に追加
 using Path = System.IO.Path; // 明示的にSystem.IO.Pathを使用するよう指定
 
 namespace Volumix
@@ -33,6 +34,12 @@ namespace Volumix
         // 追加: 再生位置更新用タイマーとフラグ
         private DispatcherTimer positionTimer;
         private bool isSliderDragging = false;
+
+        // クラスフィールドを追加
+        private int inputSampleRate = 0;
+
+        // 選択されたサンプリング周波数を保持
+        private int selectedSampleRate = 0; // 0=変更しない, 44100, 48000, 96000
 
         // コンストラクタでイベント登録
         public MainWindow()
@@ -114,6 +121,51 @@ namespace Volumix
             {
                 txtOriginalLoudness.Text = "取得失敗";
             }
+
+            // サンプリング周波数抽出（より厳密に）
+            inputSampleRate = GetSampleRateFromFile(videoPath);
+            if (inputSampleRate > 0)
+            {
+                if (txtSampleRate != null)
+                    txtSampleRate.Text = (inputSampleRate / 1000.0).ToString("F1") + " kHz";
+            }
+            else
+            {
+                inputSampleRate = 0;
+                if (txtSampleRate != null)
+                    txtSampleRate.Text = "-";
+            }
+            Dispatcher.Invoke(() => UpdateSampleRateButtons());
+        }
+
+        private int GetSampleRateFromFile(string filePath)
+        {
+            var ffprobePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffprobe.exe");
+            if (!File.Exists(ffprobePath))
+                return 0;
+
+            var args = $"-v quiet -print_format json -show_streams \"{filePath}\"";
+            var psi = new ProcessStartInfo(ffprobePath, args)
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            string json = "";
+            using (var proc = Process.Start(psi))
+            {
+                json = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+            }
+
+            var j = JObject.Parse(json);
+            var audioStream = j["streams"]?.FirstOrDefault(s => (string)s["codec_type"] == "audio");
+            if (audioStream != null && audioStream["sample_rate"] != null)
+            {
+                if (int.TryParse((string)audioStream["sample_rate"], out int sr))
+                    return sr;
+            }
+            return 0;
         }
 
         private void sliderLoudness_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -294,9 +346,16 @@ namespace Volumix
                 return;
             }
 
+            // サンプリング周波数オプション
+            string arOption = "";
+            if (selectedSampleRate > 0 && inputSampleRate >= selectedSampleRate)
+            {
+                arOption = $"-ar {selectedSampleRate} ";
+            }
+
             // 2パス目: 測定値を使って変換
             string secondPassArgs =
-                $"-y -i \"{videoPath}\" -c:v copy -af " +
+                $"-y -i \"{videoPath}\" -c:v copy -c:a aac {arOption}-af " +
                 $"loudnorm=I={targetLoudness}:TP=-2:LRA=11:" +
                 $"measured_I={measured_I}:measured_LRA={measured_LRA}:measured_TP={measured_TP}:measured_thresh={measured_thresh}:offset={offset}:linear=true:print_format=summary " +
                 $"\"{savePath}\"";
@@ -393,6 +452,40 @@ namespace Volumix
         {
             double diff = sliderLoudness.Value - originalLoudness;
             mediaPreview.Volume = Math.Pow(10, diff / 20.0);
+        }
+
+        private void SampleRateRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            if (rb441 != null && rb441.IsChecked == true)
+                selectedSampleRate = 44100;
+            else if (rb480 != null && rb480.IsChecked == true)
+                selectedSampleRate = 48000;
+            else if (rb960 != null && rb960.IsChecked == true)
+                selectedSampleRate = 96000;
+            else
+                selectedSampleRate = 0;
+        }
+
+        // サンプリング周波数ボタンの有効/無効を更新
+        private void UpdateSampleRateButtons()
+        {
+            if (inputSampleRate == 0)
+            {
+                rb441.IsEnabled = rb480.IsEnabled = rb960.IsEnabled = false;
+                rbNoChange.IsChecked = true;
+                return;
+            }
+            rb441.IsEnabled = inputSampleRate >= 44100;
+            rb480.IsEnabled = inputSampleRate >= 48000;
+            rb960.IsEnabled = inputSampleRate >= 96000;
+
+            // 入力より高い値が選択されていたら「変更しない」に戻す
+            if ((rb441.IsChecked == true && !rb441.IsEnabled) ||
+                (rb480.IsChecked == true && !rb480.IsEnabled) ||
+                (rb960.IsChecked == true && !rb960.IsEnabled))
+            {
+                rbNoChange.IsChecked = true;
+            }
         }
     }
 }
