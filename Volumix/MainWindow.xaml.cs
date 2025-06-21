@@ -252,37 +252,77 @@ namespace Volumix
                 return;
             }
             double targetLoudness = sliderLoudness.Value;
-            var args = $"-y -i \"{videoPath}\" -c:v copy -af loudnorm=I={targetLoudness}:TP=-2:LRA=11 \"{savePath}\"";
-            var psi = new ProcessStartInfo(ffmpegPath, args)
+
+            // 1パス目: ラウドネス測定
+            string measured_I = null, measured_LRA = null, measured_TP = null, measured_thresh = null, offset = null;
+            string firstPassArgs = $"-i \"{videoPath}\" -af loudnorm=I={targetLoudness}:TP=-2:LRA=11:print_format=json -f null -";
+            var psi1 = new ProcessStartInfo(ffmpegPath, firstPassArgs)
+            {
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            string json = "";
+            await Task.Run(() =>
+            {
+                using (var proc = Process.Start(psi1))
+                {
+                    json = proc.StandardError.ReadToEnd();
+                    proc.WaitForExit();
+                }
+            });
+
+            // JSONから値を抽出
+            var match = Regex.Match(json, @"\{[\s\S]*?\}");
+            if (!match.Success)
+            {
+                MessageBox.Show("ラウドネス測定に失敗しました。\n\nffmpeg出力:\n" + json);
+                return;
+            }
+            var jsonText = match.Value;
+            // 簡易的な抽出（本格的にはJSONパーサ推奨）
+            measured_I = Regex.Match(jsonText, @"""input_i""\s*:\s*""?(-?\d+(\.\d+)?)").Groups[1].Value;
+            measured_LRA = Regex.Match(jsonText, @"""input_lra""\s*:\s*""?(-?\d+(\.\d+)?)").Groups[1].Value;
+            measured_TP = Regex.Match(jsonText, @"""input_tp""\s*:\s*""?(-?\d+(\.\d+)?)").Groups[1].Value;
+            measured_thresh = Regex.Match(jsonText, @"""input_thresh""\s*:\s*""?(-?\d+(\.\d+)?)").Groups[1].Value;
+            offset = Regex.Match(jsonText, @"""target_offset""\s*:\s*""?(-?\d+(\.\d+)?)").Groups[1].Value;
+
+            if (string.IsNullOrEmpty(measured_I) || string.IsNullOrEmpty(measured_LRA) ||
+                string.IsNullOrEmpty(measured_TP) || string.IsNullOrEmpty(measured_thresh) || string.IsNullOrEmpty(offset))
+            {
+                MessageBox.Show("ラウドネス測定値の抽出に失敗しました。\n\nffmpeg出力:\n" + jsonText);
+                return;
+            }
+
+            // 2パス目: 測定値を使って変換
+            string secondPassArgs =
+                $"-y -i \"{videoPath}\" -c:v copy -af " +
+                $"loudnorm=I={targetLoudness}:TP=-2:LRA=11:" +
+                $"measured_I={measured_I}:measured_LRA={measured_LRA}:measured_TP={measured_TP}:measured_thresh={measured_thresh}:offset={offset}:linear=true:print_format=summary " +
+                $"\"{savePath}\"";
+            var psi2 = new ProcessStartInfo(ffmpegPath, secondPassArgs)
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            try
+            string error = "";
+            await Task.Run(() =>
             {
-                string error = "";
-                await Task.Run(() =>
+                using (var proc = Process.Start(psi2))
                 {
-                    using (var proc = Process.Start(psi))
-                    {
-                        error = proc.StandardError.ReadToEnd();
-                        proc.WaitForExit();
-                    }
-                });
-                if (!File.Exists(savePath))
-                {
-                    MessageBox.Show("保存に失敗しました。\n\nffmpeg出力:\n" + error);
+                    error = proc.StandardError.ReadToEnd();
+                    proc.WaitForExit();
                 }
-                else
-                {
-                    MessageBox.Show("保存が完了しました。");
-                }
+            });
+            if (!File.Exists(savePath))
+            {
+                MessageBox.Show("保存に失敗しました。\n\nffmpeg出力:\n" + error);
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show("保存中にエラーが発生しました: " + ex.Message);
+                MessageBox.Show("保存が完了しました。");
             }
         }
 
