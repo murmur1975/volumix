@@ -41,7 +41,11 @@ namespace Volumix
         // 選択されたサンプリング周波数を保持
         private int selectedSampleRate = 0; // 0=変更しない, 44100, 48000, 96000
 
-        // コンストラクタでイベント登録
+        // ビットレート関連の変数を追加
+        private bool isCBR = true; // 初期値はCBR
+        private string selectedBitrateValue = "128"; // デフォルト値
+
+        // コンストラクタでイベント登録と初期化
         public MainWindow()
         {
             InitializeComponent();
@@ -54,6 +58,60 @@ namespace Volumix
             // MediaElementのイベント登録
             mediaPreview.MediaOpened += mediaPreview_MediaOpened;
             mediaPreview.MediaFailed += mediaPreview_MediaFailed;
+
+            // ビットレートコンボボックスの初期化
+            InitializeBitrateComboBox();
+        }
+
+        // ビットレートコンボボックスの初期化
+        private void InitializeBitrateComboBox()
+        {
+            // CBRの初期値設定
+            cbBitrate.Items.Clear();
+            cbBitrate.Items.Add("128");
+            cbBitrate.Items.Add("192");
+            cbBitrate.Items.Add("256");
+            cbBitrate.Items.Add("320");
+            cbBitrate.SelectedIndex = 0; // デフォルトで128を選択
+        }
+
+        // ビットレートタイプのラジオボタン処理
+        private void BitrateRadioType_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!IsInitialized) return; // 初期化前なら無視
+
+            isCBR = rbCBR.IsChecked == true;
+            
+            // コンボボックス内容を更新
+            cbBitrate.Items.Clear();
+            
+            if (isCBR)
+            {
+                // CBRの選択肢
+                cbBitrate.Items.Add("128");
+                cbBitrate.Items.Add("192");
+                cbBitrate.Items.Add("256");
+                cbBitrate.Items.Add("320");
+                cbBitrate.SelectedIndex = 0; // デフォルトで128を選択
+            }
+            else
+            {
+                // VBRの選択肢 (0-9)
+                for (int i = 0; i <= 9; i++)
+                {
+                    cbBitrate.Items.Add(i.ToString());
+                }
+                cbBitrate.SelectedIndex = 2; // デフォルトで2を選択
+            }
+        }
+
+        // コンボボックス選択変更時の処理
+        private void cbBitrate_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cbBitrate.SelectedItem != null)
+            {
+                selectedBitrateValue = cbBitrate.SelectedItem.ToString();
+            }
         }
 
         private void btnSelectVideo_Click(object sender, RoutedEventArgs e)
@@ -353,9 +411,22 @@ namespace Volumix
                 arOption = $"-ar {selectedSampleRate} ";
             }
 
+            // ビットレートオプション
+            string bitrateOption = "";
+            if (isCBR)
+            {
+                // CBRモード
+                bitrateOption = $"-b:a {selectedBitrateValue}k ";
+            }
+            else
+            {
+                // VBRモード (AAC用のFFmpegのオプション)
+                bitrateOption = $"-q:a {selectedBitrateValue} ";
+            }
+
             // 2パス目: 測定値を使って変換
             string secondPassArgs =
-                $"-y -i \"{videoPath}\" -c:v copy -c:a aac {arOption}-af " +
+                $"-y -i \"{videoPath}\" -c:v copy -c:a aac {arOption}{bitrateOption}-af " +
                 $"loudnorm=I={targetLoudness}:TP=-2:LRA=11:" +
                 $"measured_I={measured_I}:measured_LRA={measured_LRA}:measured_TP={measured_TP}:measured_thresh={measured_thresh}:offset={offset}:linear=true:print_format=summary " +
                 $"\"{savePath}\"";
