@@ -404,9 +404,9 @@ namespace Volumix
                 return;
             }
 
-            // サンプリング周波数オプション
+            // サンプリング周波数オプション - チェックを削除して選択されたレートを常に適用
             string arOption = "";
-            if (selectedSampleRate > 0 && inputSampleRate >= selectedSampleRate)
+            if (selectedSampleRate > 0)
             {
                 arOption = $"-ar {selectedSampleRate} ";
             }
@@ -546,17 +546,10 @@ namespace Volumix
                 rbNoChange.IsChecked = true;
                 return;
             }
-            rb441.IsEnabled = inputSampleRate >= 44100;
-            rb480.IsEnabled = inputSampleRate >= 48000;
-            rb960.IsEnabled = inputSampleRate >= 96000;
-
-            // 入力より高い値が選択されていたら「変更しない」に戻す
-            if ((rb441.IsChecked == true && !rb441.IsEnabled) ||
-                (rb480.IsChecked == true && !rb480.IsEnabled) ||
-                (rb960.IsChecked == true && !rb960.IsEnabled))
-            {
-                rbNoChange.IsChecked = true;
-            }
+            
+            rb441.IsEnabled = true;
+            rb480.IsEnabled = true;
+            rb960.IsEnabled = true;
         }
     }
 }
