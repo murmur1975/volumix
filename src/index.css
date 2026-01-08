@@ -18,21 +18,27 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* App-like feel */
+  overflow: auto;
+  /* App-like feel */
   user-select: none;
 }
 
 #root {
   width: 100%;
   max-width: 900px;
-  height: 100vh;
+  min-height: 100vh;
+  /* Changed from height to min-height */
   padding: 2rem;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  /* Allow scrolling */
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -72,7 +78,7 @@ input[type="range"]::-webkit-slider-runnable-track {
   width: 100%;
   height: 4px;
   cursor: pointer;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
 }
 

@@ -6,8 +6,8 @@ import ProgressBar from './components/ProgressBar'
 
 function App() {
   const [file, setFile] = useState(null)
-  const [volume, setVolume] = useState(1.0)
-  const [lkfs, setLkfs] = useState('')
+  const [currentLkfs, setCurrentLkfs] = useState(null)
+  const [lkfs, setLkfs] = useState('-14')
   const [sampleRate, setSampleRate] = useState('')
   const [status, setStatus] = useState('idle')
   const [progress, setProgress] = useState(0)
@@ -22,12 +22,37 @@ function App() {
     }
   }, [])
 
-  const handleFileSelected = (fileObj) => {
+  const handleFileSelected = async (fileObj) => {
+    console.log('[Renderer] handleFileSelected:', fileObj);
+
+    if (!fileObj || !fileObj.path) {
+      console.error('[Renderer] Invalid file object - no path');
+      setMessage('Error: Could not get file path');
+      return;
+    }
+
     setFile(fileObj)
-    setStatus('idle')
-    setMessage('')
+    setStatus('analyzing')
+    setMessage('Analyzing audio loudness...')
     setProgress(0)
-    // Optional: Get file info via IPC if needed in future
+    setCurrentLkfs(null)
+
+    try {
+      if (window.electronAPI && window.electronAPI.getFileInfo) {
+        console.log('[Renderer] Calling getFileInfo with:', fileObj.path);
+        const info = await window.electronAPI.getFileInfo(fileObj.path);
+        console.log('[Renderer] File Info:', info);
+        if (info.lkfs) {
+          setCurrentLkfs(info.lkfs);
+        }
+      }
+      setStatus('idle')
+      setMessage('')
+    } catch (err) {
+      console.error('[Renderer] Error:', err);
+      setStatus('idle')
+      setMessage('Failed to analyze audio')
+    }
   }
 
   const handleStart = async () => {
@@ -40,8 +65,7 @@ function App() {
     try {
       // IPC call
       const result = await window.electronAPI.startConversion({
-        filePath: file.path, // 'path' property exists on File in Electron renderer
-        volume,
+        filePath: file.path,
         lkfs: lkfs ? parseFloat(lkfs) : null,
         sampleRate: sampleRate || null
       })
@@ -49,7 +73,6 @@ function App() {
       if (result.success) {
         setStatus('done')
         setMessage(`Success! Saved to: ${result.outputPath}`)
-        // alert(`Completed! Saved to: ${result.outputPath}`)
       }
     } catch (error) {
       console.error(error)
@@ -75,10 +98,10 @@ function App() {
       <FileDropper onFileSelected={handleFileSelected} file={file} />
 
       <ControlPanel
-        volume={volume} setVolume={setVolume}
         lkfs={lkfs} setLkfs={setLkfs}
         sampleRate={sampleRate} setSampleRate={setSampleRate}
-        disabled={status === 'processing'}
+        currentLkfs={currentLkfs}
+        disabled={status === 'processing' || status === 'analyzing'}
       />
 
       <ProgressBar progress={progress} status={status} />
@@ -99,10 +122,10 @@ function App() {
       <div style={{ marginTop: '2rem', textAlign: 'center' }}>
         <button
           onClick={handleStart}
-          disabled={!file || status === 'processing'}
+          disabled={!file || status === 'processing' || status === 'analyzing'}
           style={{ width: '100%', fontSize: '1.2rem', padding: '1rem' }}
         >
-          {status === 'processing' ? 'Processing...' : 'Start Processing'}
+          {status === 'processing' ? 'Processing...' : status === 'analyzing' ? 'Analyzing...' : 'Start Processing'}
         </button>
       </div>
     </div>

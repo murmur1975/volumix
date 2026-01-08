@@ -1,59 +1,46 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 export default function FileDropper({ onFileSelected, file }) {
-    const [isDragOver, setIsDragOver] = useState(false);
+    const [isHover, setIsHover] = useState(false);
 
-    const handleDrop = useCallback((e) => {
-        e.preventDefault();
-        setIsDragOver(false);
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            const droppedFile = files[0];
-            if (droppedFile.name.toLowerCase().endsWith('.mp4')) {
-                // Send path (Electron only property)
-                onFileSelected(droppedFile);
-            } else {
-                alert('Please drop an MP4 file');
+    const handleClick = async () => {
+        if (window.electronAPI && window.electronAPI.selectFile) {
+            const filePath = await window.electronAPI.selectFile();
+            if (filePath) {
+                console.log('[Renderer] File selected:', filePath);
+                onFileSelected({
+                    name: filePath.split(/[/\\]/).pop(),
+                    path: filePath
+                });
             }
         }
-    }, [onFileSelected]);
-
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        setIsDragOver(true);
-    };
-
-    const handleDragLeave = () => {
-        setIsDragOver(false);
     };
 
     return (
         <div
-            className={`glass-panel drop-zone ${isDragOver ? 'active' : ''}`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            className="glass-panel drop-zone"
+            onClick={handleClick}
+            onMouseEnter={() => setIsHover(true)}
+            onMouseLeave={() => setIsHover(false)}
             style={{
-                border: isDragOver ? '2px dashed var(--primary-color)' : '2px dashed rgba(255,255,255,0.1)',
+                border: isHover ? '2px dashed var(--primary-color)' : '2px dashed rgba(255,255,255,0.1)',
                 textAlign: 'center',
                 padding: '3rem',
-                cursor: 'default',
+                cursor: 'pointer',
                 transition: 'all 0.3s ease'
             }}
         >
             {file ? (
                 <div>
                     <h3 style={{ marginBottom: '0.5rem', color: 'var(--primary-color)' }}>{file.name}</h3>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Ready to process</p>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Ready to process (Click to change)</p>
                 </div>
             ) : (
                 <div>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem', color: isDragOver ? 'var(--primary-color)' : '#555' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem', color: isHover ? 'var(--primary-color)' : '#555' }}>
                         📂
                     </div>
-                    <h3>Drag & Drop MP4 Video</h3>
-                    <p style={{ color: 'var(--text-secondary)' }}>or click to separate audio from video (implementation detail)</p>
+                    <h3>Click to Select MP4 Video</h3>
                 </div>
             )}
         </div>

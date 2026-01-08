@@ -1,53 +1,53 @@
 import React from 'react';
 
 export default function ControlPanel({
-    volume, setVolume,
     lkfs, setLkfs,
     sampleRate, setSampleRate,
+    currentLkfs,
     disabled
 }) {
     return (
         <div className="glass-panel controls">
             <div style={{ display: 'grid', gap: '1.5rem' }}>
 
-                {/* Volume Control */}
-                <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="label">Volume Gain</span>
-                        <span className="value-display">{(volume * 100).toFixed(0)}%</span>
+                {/* Current File Info */}
+                <div style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    borderLeft: '4px solid var(--secondary-color)'
+                }}>
+                    <span className="label">Original Loudness</span>
+                    <div className="value-display" style={{ fontSize: '1.5rem' }}>
+                        {currentLkfs ? `${currentLkfs} LUFS` : '--'}
                     </div>
-                    <input
-                        type="range"
-                        min="0" max="3" step="0.1"
-                        value={volume}
-                        onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        disabled={disabled || lkfs !== ''} // Disable if LKFS is set (override behavior)
-                        style={{ opacity: lkfs ? 0.5 : 1 }}
-                    />
                 </div>
 
                 {/* LKFS Control */}
                 <div>
-                    <span className="label">Target LKFS (Normalization)</span>
+                    <span className="label">Target Loudness (LKFS/LUFS)</span>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <input
-                            type="text"
-                            placeholder="e.g. -14 (Leave empty to disable)"
+                            type="number"
+                            placeholder="-14"
                             value={lkfs}
                             onChange={(e) => setLkfs(e.target.value)}
                             disabled={disabled}
+                            step="0.1"
                             style={{
                                 background: 'rgba(0,0,0,0.3)',
                                 border: '1px solid rgba(255,255,255,0.1)',
-                                padding: '10px',
+                                padding: '12px',
                                 borderRadius: '8px',
                                 color: 'white',
-                                width: '100%'
+                                width: '100%',
+                                fontSize: '1.2rem',
+                                fontFamily: 'JetBrains Mono, monospace'
                             }}
                         />
                     </div>
-                    <p style={{ fontSize: '0.75rem', color: '#666', marginTop: '4px' }}>
-                        *Overrides simple volume gain
+                    <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
+                        Standard values: TV (-24), Youtube (-14), Spotify (-14)
                     </p>
                 </div>
 
