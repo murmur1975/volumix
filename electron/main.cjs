@@ -169,6 +169,9 @@ ipcMain.handle('get-file-info', async (event, filePath) => {
 });
 
 ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampleRate, naming, measured }) => {
+    const fs = require('fs');
+    const os = require('os');
+
     const dir = path.dirname(filePath);
     const ext = path.extname(filePath);
     const name = path.basename(filePath, ext);
@@ -194,63 +197,154 @@ ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampl
 
     const outputPath = path.join(dir, `${name}${suffix}${ext}`);
 
-    return new Promise((resolve, reject) => {
-        let command = ffmpeg(filePath);
+    // Helper: Analyze a file's loudness
+    const analyzeLoudness = (inputPath) => {
+        return new Promise((resolve, reject) => {
+            const nullDevice = process.platform === 'win32' ? 'NUL' : '/dev/null';
+            let stderrData = '';
 
-        // Audio Filters
-        const audioFilters = [];
+            const cmd = ffmpeg(inputPath)
+                .audioFilters('ebur128=peak=true')
+                .format('null')
+                .output(nullDevice);
 
-        // Resample
-        if (sampleRate) {
-            command.audioFrequency(parseInt(sampleRate));
+            cmd.on('stderr', (line) => {
+                stderrData += line + '\n';
+            });
+
+            cmd.on('end', () => {
+                const parseValue = (regex) => {
+                    const matches = [...stderrData.matchAll(regex)];
+                    return matches.length > 0 ? parseFloat(matches[matches.length - 1][1]) : null;
+                };
+
+                const i = parseValue(/I:\s*([-\d.]+)\s*LUFS/g);
+                resolve(i);
+            });
+
+            cmd.on('error', (err) => {
+                reject(err);
+            });
+
+            cmd.run();
+        });
+    };
+
+    // Helper: Run one normalization pass
+    const runNormalizationPass = (inputPath, outputFilePath, targetLkfs) => {
+        return new Promise((resolve, reject) => {
+            const audioFilters = [
+                'alimiter=limit=0.9:level=false',
+                `loudnorm=I=${targetLkfs}:TP=0:LRA=11`
+            ];
+
+            const cmd = ffmpeg(inputPath)
+                .audioFilters(audioFilters)
+                .videoCodec('copy')
+                .on('progress', (progress) => {
+                    const percent = progress.percent || 0;
+                    event.sender.send('conversion-progress', Math.round(percent));
+                })
+                .on('end', () => {
+                    resolve();
+                })
+                .on('error', (err) => {
+                    reject(err);
+                })
+                .save(outputFilePath);
+        });
+    };
+
+    // Main iterative logic
+    try {
+        if (!lkfs) {
+            // No LKFS normalization, just simple processing
+            return new Promise((resolve, reject) => {
+                let command = ffmpeg(filePath);
+                const audioFilters = [];
+
+                if (sampleRate) {
+                    command.audioFrequency(parseInt(sampleRate));
+                }
+
+                if (volume && volume !== 1) {
+                    audioFilters.push(`volume=${volume}`);
+                }
+
+                if (audioFilters.length > 0) {
+                    command.audioFilters(audioFilters);
+                }
+
+                command.videoCodec('copy')
+                    .on('progress', (progress) => {
+                        event.sender.send('conversion-progress', Math.round(progress.percent || 0));
+                    })
+                    .on('end', () => resolve({ success: true, outputPath }))
+                    .on('error', (err) => reject(new Error(err.message)))
+                    .save(outputPath);
+            });
         }
 
-        // Volume / LKFS
-        if (lkfs) {
-            // Build loudnorm filter string manually for precise control
-            let loudnormFilter = `loudnorm=I=${lkfs}:TP=-1.5:LRA=11`;
+        // Iterative LKFS normalization
+        const targetLkfs = parseFloat(lkfs);
+        const tolerance = 1.0; // ±1 LKFS
+        const maxIterations = 5;
 
-            // If we have measured stats, use linear normalization (2-pass)
-            if (measured && measured.i && measured.lra && measured.tp && measured.threshold) {
-                console.log('[Main] Using Linear Normalization with stats:', measured);
-                loudnormFilter += `:measured_I=${measured.i}`;
-                loudnormFilter += `:measured_LRA=${measured.lra}`;
-                loudnormFilter += `:measured_TP=${measured.tp}`;
-                loudnormFilter += `:measured_thresh=${measured.threshold}`;
-                loudnormFilter += `:linear=true`;
-                loudnormFilter += `:print_format=summary`;
-            } else {
-                console.log('[Main] Using Dynamic Normalization (single pass)');
+        let currentInput = filePath;
+        let tempFiles = [];
+        let iteration = 0;
+        let currentLoudness = null;
+
+        console.log(`[Main] Starting iterative normalization. Target: ${targetLkfs} LKFS`);
+
+        while (iteration < maxIterations) {
+            iteration++;
+
+            // Create temp output path
+            const tempOutput = path.join(os.tmpdir(), `volumix_temp_${Date.now()}_${iteration}${ext}`);
+            tempFiles.push(tempOutput);
+
+            console.log(`[Main] Iteration ${iteration}: Processing...`);
+
+            // Run normalization pass
+            await runNormalizationPass(currentInput, tempOutput, targetLkfs);
+
+            // Measure result
+            currentLoudness = await analyzeLoudness(tempOutput);
+            console.log(`[Main] Iteration ${iteration} result: ${currentLoudness} LUFS (target: ${targetLkfs})`);
+
+            // Check convergence
+            const diff = Math.abs(currentLoudness - targetLkfs);
+            if (diff <= tolerance) {
+                console.log(`[Main] Converged after ${iteration} iteration(s)! Diff: ${diff.toFixed(2)} LKFS`);
+                break;
             }
 
-            console.log('[Main] loudnorm filter:', loudnormFilter);
-            audioFilters.push(loudnormFilter);
-        } else if (volume && volume !== 1) {
-            // Simple volume adjustment
-            audioFilters.push(`volume=${volume}`);
+            // Use temp output as next input
+            currentInput = tempOutput;
+
+            // Send progress update
+            event.sender.send('conversion-progress', Math.round((iteration / maxIterations) * 100));
         }
 
-        if (audioFilters.length > 0) {
-            command.audioFilters(audioFilters);
+        // Copy final result to output path
+        const finalTemp = tempFiles[tempFiles.length - 1];
+        fs.copyFileSync(finalTemp, outputPath);
+
+        // Cleanup temp files
+        for (const tempFile of tempFiles) {
+            try {
+                fs.unlinkSync(tempFile);
+            } catch (e) {
+                // Ignore cleanup errors
+            }
         }
 
-        // Copy video stream to avoid re-encoding video if possible
-        // Note: If sampling rate changes, audio is re-encoded. Video can be copied.
-        command.videoCodec('copy');
+        console.log(`[Main] Final output: ${outputPath} (${currentLoudness} LUFS after ${iteration} iterations)`);
+        return { success: true, outputPath, iterations: iteration, finalLoudness: currentLoudness };
 
-        command
-            .on('progress', (progress) => {
-                // Send progress to renderer
-                // percent might be undefined if duration is unknown
-                const percent = progress.percent || 0;
-                event.sender.send('conversion-progress', Math.round(percent));
-            })
-            .on('end', () => {
-                resolve({ success: true, outputPath });
-            })
-            .on('error', (err) => {
-                reject(new Error(err.message));
-            })
-            .save(outputPath);
-    });
+    } catch (error) {
+        console.error('[Main] Conversion error:', error);
+        throw error;
+    }
 });
