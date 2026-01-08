@@ -16,12 +16,55 @@ export default function ControlPanel({
 
                 {/* LKFS Control */}
                 <div>
-                    <span className="label">Target Loudness (LKFS/LUFS)</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className="label" style={{ margin: 0 }}>Target Loudness</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                                onClick={() => setLkfs('-24')}
+                                disabled={disabled}
+                                style={{
+                                    padding: '2px 8px',
+                                    fontSize: '0.75rem',
+                                    background: lkfs === '-24' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    color: 'white',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                TV (-24)
+                            </button>
+                            <button
+                                onClick={() => setLkfs('-14')}
+                                disabled={disabled}
+                                style={{
+                                    padding: '2px 8px',
+                                    fontSize: '0.75rem',
+                                    background: lkfs === '-14' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    color: 'white',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Web (-14)
+                            </button>
+                        </div>
+                    </div>
                     <input
                         type="number"
                         placeholder="-14"
                         value={lkfs}
                         onChange={(e) => setLkfs(e.target.value)}
+                        onBlur={(e) => {
+                            let val = parseFloat(e.target.value);
+                            if (isNaN(val)) val = -14;
+                            if (val > -5) val = -5;
+                            if (val < -70) val = -70;
+                            setLkfs(val.toString());
+                        }}
+                        min="-70"
+                        max="-5"
                         disabled={disabled}
                         step="0.1"
                         style={{
@@ -37,7 +80,7 @@ export default function ControlPanel({
                         }}
                     />
                     <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
-                        TV (-24), Youtube (-14), Spotify (-14)
+                        Range: -70 to -5. Standard: TV (-24), Youtube (-14)
                     </p>
                 </div>
 
