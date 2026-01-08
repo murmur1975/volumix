@@ -168,7 +168,7 @@ ipcMain.handle('get-file-info', async (event, filePath) => {
     });
 });
 
-ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampleRate, naming }) => {
+ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampleRate, naming, measured }) => {
     const dir = path.dirname(filePath);
     const ext = path.extname(filePath);
     const name = path.basename(filePath, ext);
@@ -207,12 +207,24 @@ ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampl
 
         // Volume / LKFS
         if (lkfs) {
-            // Use loudnorm for LKFS normalization
-            // I (Integrated Loudness) targeted
-            audioFilters.push({
-                filter: 'loudnorm',
-                options: { I: lkfs, TP: -1.5, LRA: 11 }
-            });
+            // Build loudnorm filter string manually for precise control
+            let loudnormFilter = `loudnorm=I=${lkfs}:TP=-1.5:LRA=11`;
+
+            // If we have measured stats, use linear normalization (2-pass)
+            if (measured && measured.i && measured.lra && measured.tp && measured.threshold) {
+                console.log('[Main] Using Linear Normalization with stats:', measured);
+                loudnormFilter += `:measured_I=${measured.i}`;
+                loudnormFilter += `:measured_LRA=${measured.lra}`;
+                loudnormFilter += `:measured_TP=${measured.tp}`;
+                loudnormFilter += `:measured_thresh=${measured.threshold}`;
+                loudnormFilter += `:linear=true`;
+                loudnormFilter += `:print_format=summary`;
+            } else {
+                console.log('[Main] Using Dynamic Normalization (single pass)');
+            }
+
+            console.log('[Main] loudnorm filter:', loudnormFilter);
+            audioFilters.push(loudnormFilter);
         } else if (volume && volume !== 1) {
             // Simple volume adjustment
             audioFilters.push(`volume=${volume}`);
