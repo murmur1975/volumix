@@ -1,20 +1,22 @@
-import { useState, useEffect } from 'react'
-// import './App.css' // Removed default styles, using index.css
+import { useState, useEffect, useCallback } from 'react'
 import FileDropper from './components/FileDropper'
 import ControlPanel from './components/ControlPanel'
 import ProgressBar from './components/ProgressBar'
+import FileTable from './components/FileTable'
 
 function App() {
-  const [file, setFile] = useState(null)
-  const [currentLkfs, setCurrentLkfs] = useState(null)
+  // Multi-file state
+  const [files, setFiles] = useState([])
   const [lkfs, setLkfs] = useState('-14')
   const [sampleRate, setSampleRate] = useState('')
   const [status, setStatus] = useState('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
 
+  // Generate unique ID
+  const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
   useEffect(() => {
-    // Listen for progress from Electron
     if (window.electronAPI && window.electronAPI.onProgress) {
       window.electronAPI.onProgress((value) => {
         setProgress(value)
@@ -22,67 +24,134 @@ function App() {
     }
   }, [])
 
-  const handleFileSelected = async (fileObj) => {
-    console.log('[Renderer] handleFileSelected:', fileObj);
+  // Handle multiple files selected
+  const handleFilesSelected = useCallback(async (newFiles) => {
+    console.log('[Renderer] handleFilesSelected:', newFiles);
 
-    if (!fileObj || !fileObj.path) {
-      console.error('[Renderer] Invalid file object - no path');
-      setMessage('Error: Could not get file path');
+    if (!newFiles || newFiles.length === 0) return;
+
+    // Add new files to state with initial status
+    const fileEntries = newFiles.map(f => ({
+      id: generateId(),
+      name: f.name,
+      path: f.path,
+      originalLkfs: null,
+      resultLkfs: null,
+      selected: true,
+      status: 'analyzing'
+    }));
+
+    setFiles(prev => [...prev, ...fileEntries]);
+
+    // Analyze each file
+    for (const entry of fileEntries) {
+      try {
+        if (window.electronAPI && window.electronAPI.getFileInfo) {
+          console.log('[Renderer] Calling getFileInfo for:', entry.path);
+          const info = await window.electronAPI.getFileInfo(entry.path);
+          console.log('[Renderer] File Info:', info);
+
+          setFiles(prev => prev.map(f =>
+            f.id === entry.id
+              ? { ...f, originalLkfs: info.lkfs, status: 'ready' }
+              : f
+          ));
+        }
+      } catch (err) {
+        console.error('[Renderer] Error analyzing:', entry.name, err);
+        setFiles(prev => prev.map(f =>
+          f.id === entry.id
+            ? { ...f, status: 'error', originalLkfs: 'Error' }
+            : f
+        ));
+      }
+    }
+  }, []);
+
+  // Toggle single file selection
+  const handleToggleFile = useCallback((fileId) => {
+    setFiles(prev => prev.map(f =>
+      f.id === fileId ? { ...f, selected: !f.selected } : f
+    ));
+  }, []);
+
+  // Toggle all files
+  const handleToggleAll = useCallback((selected) => {
+    setFiles(prev => prev.map(f => ({ ...f, selected })));
+  }, []);
+
+  // Remove file from list
+  const handleRemoveFile = useCallback((fileId) => {
+    setFiles(prev => prev.filter(f => f.id !== fileId));
+  }, []);
+
+  // Start processing selected files
+  const handleStart = async () => {
+    const selectedFiles = files.filter(f => f.selected && f.status === 'ready');
+    if (selectedFiles.length === 0) {
+      setMessage('No files selected for processing');
       return;
     }
 
-    setFile(fileObj)
-    setStatus('analyzing')
-    setMessage('Analyzing audio loudness...')
-    setProgress(0)
-    setCurrentLkfs(null)
+    setStatus('processing');
+    setProgress(0);
+    setMessage('');
 
-    try {
-      if (window.electronAPI && window.electronAPI.getFileInfo) {
-        console.log('[Renderer] Calling getFileInfo with:', fileObj.path);
-        const info = await window.electronAPI.getFileInfo(fileObj.path);
-        console.log('[Renderer] File Info:', info);
-        if (info.lkfs) {
-          setCurrentLkfs(info.lkfs);
+    let processed = 0;
+    const total = selectedFiles.length;
+
+    for (const file of selectedFiles) {
+      // Update file status to processing
+      setFiles(prev => prev.map(f =>
+        f.id === file.id ? { ...f, status: 'processing' } : f
+      ));
+
+      try {
+        const result = await window.electronAPI.startConversion({
+          filePath: file.path,
+          lkfs: lkfs ? parseFloat(lkfs) : null,
+          sampleRate: sampleRate || null
+        });
+
+        if (result.success) {
+          // Get result LKFS
+          let resultLkfs = null;
+          try {
+            const info = await window.electronAPI.getFileInfo(result.outputPath);
+            resultLkfs = info.lkfs;
+          } catch (e) {
+            console.error('Error getting result LKFS:', e);
+          }
+
+          setFiles(prev => prev.map(f =>
+            f.id === file.id
+              ? { ...f, status: 'done', resultLkfs }
+              : f
+          ));
         }
+      } catch (error) {
+        console.error('Conversion error:', error);
+        setFiles(prev => prev.map(f =>
+          f.id === file.id
+            ? { ...f, status: 'error' }
+            : f
+        ));
       }
-      setStatus('idle')
-      setMessage('')
-    } catch (err) {
-      console.error('[Renderer] Error:', err);
-      setStatus('idle')
-      setMessage('Failed to analyze audio')
+
+      processed++;
+      setProgress(Math.round((processed / total) * 100));
     }
-  }
 
-  const handleStart = async () => {
-    if (!file) return
+    setStatus('done');
+    setMessage(`Processed ${processed} file(s) successfully!`);
+  };
 
-    setStatus('processing')
-    setProgress(0)
-    setMessage('')
-
-    try {
-      // IPC call
-      const result = await window.electronAPI.startConversion({
-        filePath: file.path,
-        lkfs: lkfs ? parseFloat(lkfs) : null,
-        sampleRate: sampleRate || null
-      })
-
-      if (result.success) {
-        setStatus('done')
-        setMessage(`Success! Saved to: ${result.outputPath}`)
-      }
-    } catch (error) {
-      console.error(error)
-      setStatus('error')
-      setMessage(`Error: ${error.message}`)
-    }
-  }
+  // Check if any file is processing
+  const isProcessing = files.some(f => f.status === 'processing' || f.status === 'analyzing');
+  const hasSelectedFiles = files.some(f => f.selected && f.status === 'ready');
 
   return (
-    <div className="container" style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+    <div className="container" style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
       <h1 style={{
         textAlign: 'center',
         fontSize: '3rem',
@@ -95,13 +164,19 @@ function App() {
         Volumix
       </h1>
 
-      <FileDropper onFileSelected={handleFileSelected} file={file} />
+      <FileDropper onFilesSelected={handleFilesSelected} multiple={true} />
+
+      <FileTable
+        files={files}
+        onToggleFile={handleToggleFile}
+        onToggleAll={handleToggleAll}
+        onRemoveFile={handleRemoveFile}
+      />
 
       <ControlPanel
         lkfs={lkfs} setLkfs={setLkfs}
         sampleRate={sampleRate} setSampleRate={setSampleRate}
-        currentLkfs={currentLkfs}
-        disabled={status === 'processing' || status === 'analyzing'}
+        disabled={isProcessing}
       />
 
       <ProgressBar progress={progress} status={status} />
@@ -122,10 +197,10 @@ function App() {
       <div style={{ marginTop: '2rem', textAlign: 'center' }}>
         <button
           onClick={handleStart}
-          disabled={!file || status === 'processing' || status === 'analyzing'}
+          disabled={!hasSelectedFiles || isProcessing}
           style={{ width: '100%', fontSize: '1.2rem', padding: '1rem' }}
         >
-          {status === 'processing' ? 'Processing...' : status === 'analyzing' ? 'Analyzing...' : 'Start Processing'}
+          {isProcessing ? 'Processing...' : `Start Processing${hasSelectedFiles ? ` (${files.filter(f => f.selected && f.status === 'ready').length})` : ''}`}
         </button>
       </div>
     </div>

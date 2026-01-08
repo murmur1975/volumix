@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
     getFileInfo: (filePath) => ipcRenderer.invoke('get-file-info', filePath),
     selectFile: () => ipcRenderer.invoke('select-file'),
+    selectFiles: (multiple) => ipcRenderer.invoke('select-files', multiple),
 
     // Get file path from a File object (for drag and drop)
     getPathForFile: (file) => {

@@ -65,6 +65,19 @@ ipcMain.handle('select-file', async () => {
     }
 });
 
+ipcMain.handle('select-files', async (event, multiple) => {
+    const properties = multiple ? ['openFile', 'multiSelections'] : ['openFile'];
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties,
+        filters: [{ name: 'Movies', extensions: ['mp4'] }]
+    });
+    if (canceled) {
+        return [];
+    } else {
+        return filePaths;
+    }
+});
+
 ipcMain.handle('get-file-info', async (event, filePath) => {
     console.log('[Main] get-file-info called for:', filePath);
 

@@ -3,51 +3,41 @@ import React from 'react';
 export default function ControlPanel({
     lkfs, setLkfs,
     sampleRate, setSampleRate,
-    currentLkfs,
     disabled
 }) {
     return (
         <div className="glass-panel controls">
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
-
-                {/* Current File Info */}
-                <div style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    borderLeft: '4px solid var(--secondary-color)'
-                }}>
-                    <span className="label">Original Loudness</span>
-                    <div className="value-display" style={{ fontSize: '1.5rem' }}>
-                        {currentLkfs ? `${currentLkfs} LUFS` : '--'}
-                    </div>
-                </div>
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1.5rem',
+                alignItems: 'start'
+            }}>
 
                 {/* LKFS Control */}
                 <div>
                     <span className="label">Target Loudness (LKFS/LUFS)</span>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <input
-                            type="number"
-                            placeholder="-14"
-                            value={lkfs}
-                            onChange={(e) => setLkfs(e.target.value)}
-                            disabled={disabled}
-                            step="0.1"
-                            style={{
-                                background: 'rgba(0,0,0,0.3)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                color: 'white',
-                                width: '100%',
-                                fontSize: '1.2rem',
-                                fontFamily: 'JetBrains Mono, monospace'
-                            }}
-                        />
-                    </div>
+                    <input
+                        type="number"
+                        placeholder="-14"
+                        value={lkfs}
+                        onChange={(e) => setLkfs(e.target.value)}
+                        disabled={disabled}
+                        step="0.1"
+                        style={{
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            color: 'white',
+                            width: '100%',
+                            fontSize: '1.2rem',
+                            fontFamily: 'JetBrains Mono, monospace',
+                            boxSizing: 'border-box'
+                        }}
+                    />
                     <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
-                        Standard values: TV (-24), Youtube (-14), Spotify (-14)
+                        TV (-24), Youtube (-14), Spotify (-14)
                     </p>
                 </div>
 
@@ -61,11 +51,12 @@ export default function ControlPanel({
                         style={{
                             background: 'rgba(0,0,0,0.3)',
                             border: '1px solid rgba(255,255,255,0.1)',
-                            padding: '10px',
+                            padding: '12px',
                             borderRadius: '8px',
                             color: 'white',
                             width: '100%',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            boxSizing: 'border-box'
                         }}
                     >
                         <option value="">Original</option>
