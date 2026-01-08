@@ -242,8 +242,8 @@ ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampl
                 .audioFilters(audioFilters)
                 .videoCodec('copy')
                 .on('progress', (progress) => {
-                    const percent = progress.percent || 0;
-                    event.sender.send('conversion-progress', Math.round(percent));
+                    const percent = Math.min(100, Math.round(progress.percent || 0));
+                    event.sender.send('conversion-progress', percent);
                 })
                 .on('end', () => {
                     resolve();
@@ -277,7 +277,7 @@ ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampl
 
                 command.videoCodec('copy')
                     .on('progress', (progress) => {
-                        event.sender.send('conversion-progress', Math.round(progress.percent || 0));
+                        event.sender.send('conversion-progress', Math.min(100, Math.round(progress.percent || 0)));
                     })
                     .on('end', () => resolve({ success: true, outputPath }))
                     .on('error', (err) => reject(new Error(err.message)))
