@@ -3,6 +3,7 @@ import FileDropper from './components/FileDropper'
 import ControlPanel from './components/ControlPanel'
 import ProgressBar from './components/ProgressBar'
 import FileTable from './components/FileTable'
+import SettingsModal from './components/SettingsModal'
 
 function App() {
   // Multi-file state
@@ -12,6 +13,13 @@ function App() {
   const [status, setStatus] = useState('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
+
+  // Settings
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [namingConfig, setNamingConfig] = useState({
+    mode: 'lkfs',
+    customText: '_volumix'
+  })
 
   // Generate unique ID
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -53,7 +61,7 @@ function App() {
 
           setFiles(prev => prev.map(f =>
             f.id === entry.id
-              ? { ...f, originalLkfs: info.lkfs, status: 'ready' }
+              ? { ...f, originalLkfs: info.lkfs, measurements: info.measurements, status: 'ready' }
               : f
           ));
         }
@@ -110,7 +118,9 @@ function App() {
         const result = await window.electronAPI.startConversion({
           filePath: file.path,
           lkfs: lkfs ? parseFloat(lkfs) : null,
-          sampleRate: sampleRate || null
+          sampleRate: sampleRate || null,
+          naming: namingConfig,
+          measured: file.measurements // Pass measured stats for specific linear normalization
         });
 
         if (result.success) {
@@ -152,17 +162,41 @@ function App() {
 
   return (
     <div className="container" style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-      <h1 style={{
-        textAlign: 'center',
-        fontSize: '3rem',
-        marginBottom: '2rem',
-        textShadow: '0 0 20px rgba(0,229,255,0.5)',
-        background: 'linear-gradient(to right, #00e5ff, #2979ff)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent'
-      }}>
-        Volumix
-      </h1>
+      <div style={{ position: 'relative' }}>
+        <h1 style={{
+          textAlign: 'center',
+          fontSize: '3rem',
+          marginBottom: '2rem',
+          textShadow: '0 0 20px rgba(0,229,255,0.5)',
+          background: 'linear-gradient(to right, #00e5ff, #2979ff)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          Volumix
+        </h1>
+
+        {/* Settings Button */}
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          style={{
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0',
+            background: 'none',
+            border: 'none',
+            fontSize: '1.8rem',
+            cursor: 'pointer',
+            opacity: 0.7,
+            transition: 'opacity 0.2s',
+            color: 'white'
+          }}
+          title="Settings"
+          onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+        >
+          ⚙️
+        </button>
+      </div>
 
       <FileDropper onFilesSelected={handleFilesSelected} multiple={true} />
 
@@ -203,6 +237,13 @@ function App() {
           {isProcessing ? 'Processing...' : `Start Processing${hasSelectedFiles ? ` (${files.filter(f => f.selected && f.status === 'ready').length})` : ''}`}
         </button>
       </div>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        config={namingConfig}
+        onConfigChange={setNamingConfig}
+      />
     </div>
   )
 }

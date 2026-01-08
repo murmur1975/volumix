@@ -105,7 +105,7 @@ ipcMain.handle('get-file-info', async (event, filePath) => {
             let stderrData = '';
 
             const cmd = ffmpeg(filePath)
-                .audioFilters('ebur128')
+                .audioFilters('ebur128=peak=true') // Enable True Peak measurement
                 .format('null')
                 .output(nullDevice);
 
@@ -117,19 +117,45 @@ ipcMain.handle('get-file-info', async (event, filePath) => {
                 // Log last 1000 chars of stderr for debugging
                 console.log('[Main] ebur128 output (last 1000 chars):', stderrData.slice(-1000));
 
-                // Parse stderr for Summary section's Integrated Loudness
-                // The Summary section looks like:
-                //   Summary:
-                //     Integrated loudness:
-                //       I:         -23.0 LUFS
-                // We want the LAST occurrence of "I:" followed by LUFS
-                const matches = stderrData.matchAll(/I:\s*([-\d.]+)\s*LUFS/g);
-                const allMatches = [...matches];
-                const lkfs = allMatches.length > 0
-                    ? parseFloat(allMatches[allMatches.length - 1][1])
-                    : 'Unknown';
-                console.log('[Main] Analysis complete. Final LKFS:', lkfs);
-                resolve({ ...metadata, lkfs });
+                // Parse stderr for Summary section
+                // Integrated loudness:
+                //   I:         -23.0 LUFS
+                //   Threshold: -33.0 LUFS
+                // Loudness range:
+                //   LRA:         5.0 LU
+                //   Threshold: -43.0 LUFS
+                //   LRA low:   -25.0 LUFS
+                //   LRA high:  -20.0 LUFS
+                // True peak:
+                //   Peak:        0.5 dBFS
+
+                const parseValue = (regex) => {
+                    const matches = [...stderrData.matchAll(regex)];
+                    return matches.length > 0 ? matches[matches.length - 1][1] : null;
+                };
+
+                const i = parseValue(/I:\s*([-\d.]+)\s*LUFS/g);
+                const lra = parseValue(/LRA:\s*([-\d.]+)\s*LU/g);
+                const tp = parseValue(/Peak:\s*([-\d.]+)\s*dBFS/g);
+
+                // Integrated loudness threshold is usually the first "Threshold:" after "Integrated loudness:"
+                // Because Regex is tricky with multiline/state, let's look for "Integrated loudness:" block
+                let threshold = null;
+                const integratedBlock = stderrData.split('Integrated loudness:')[1];
+                if (integratedBlock) {
+                    const threshMatch = integratedBlock.match(/Threshold:\s*([-\d.]+)\s*LUFS/);
+                    if (threshMatch) threshold = threshMatch[1];
+                }
+
+                console.log('[Main] Analysis complete.', { i, lra, tp, threshold });
+
+                resolve({
+                    ...metadata,
+                    lkfs: i || 'Unknown',
+                    measurements: {
+                        i, lra, tp, threshold
+                    }
+                });
             });
 
             cmd.on('error', (err) => {
@@ -142,11 +168,31 @@ ipcMain.handle('get-file-info', async (event, filePath) => {
     });
 });
 
-ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampleRate }) => {
+ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampleRate, naming }) => {
     const dir = path.dirname(filePath);
     const ext = path.extname(filePath);
     const name = path.basename(filePath, ext);
-    const outputPath = path.join(dir, `${name}_volumix${ext}`);
+
+    // Determines suffix based on naming config
+    let suffix = '_volumix'; // default fallback
+
+    if (naming) {
+        if (naming.mode === 'custom') {
+            suffix = naming.customText || '_volumix';
+        } else if (naming.mode === 'lkfs') {
+            suffix = lkfs ? `_${lkfs}LKFS` : '_volumix';
+        } else if (naming.mode === 'timestamp') {
+            const now = new Date();
+            const yy = String(now.getFullYear()).slice(-2);
+            const MM = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const HH = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            suffix = `_${yy}${MM}${dd}-${HH}${mm}`;
+        }
+    }
+
+    const outputPath = path.join(dir, `${name}${suffix}${ext}`);
 
     return new Promise((resolve, reject) => {
         let command = ffmpeg(filePath);
