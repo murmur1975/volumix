@@ -27,7 +27,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
             } else {
                 setMessage({ text: result.message, type: 'error' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ text: 'エラーが発生しました', type: 'error' });
         } finally {
             setIsLoading(false);
@@ -41,7 +41,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
             setMessage({ text: result.message, type: 'success' });
             onStatusChange(false);
             setLicenseKey('');
-        } catch (error) {
+        } catch {
             setMessage({ text: 'エラーが発生しました', type: 'error' });
         } finally {
             setIsLoading(false);
