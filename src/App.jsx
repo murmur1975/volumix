@@ -11,6 +11,7 @@ function App() {
   const [files, setFiles] = useState([])
   const [lkfs, setLkfs] = useState('-14')
   const [sampleRate, setSampleRate] = useState('')
+  const [bitrate, setBitrate] = useState('')
   const [status, setStatus] = useState('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
@@ -163,6 +164,7 @@ function App() {
           filePath: file.path,
           lkfs: lkfs ? parseFloat(lkfs) : null,
           sampleRate: sampleRate || null,
+          bitrate: bitrate || null,
           naming: namingConfig,
           measured: file.measurements // Pass measured stats for specific linear normalization
         });
@@ -306,7 +308,9 @@ function App() {
       <ControlPanel
         lkfs={lkfs} setLkfs={setLkfs}
         sampleRate={sampleRate} setSampleRate={setSampleRate}
+        bitrate={bitrate} setBitrate={setBitrate}
         disabled={isProcessing}
+        isPro={isPro}
       />
 
       <ProgressBar progress={progress} status={status} />

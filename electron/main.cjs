@@ -185,7 +185,7 @@ ipcMain.handle('get-file-info', async (event, filePath) => {
     });
 });
 
-ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampleRate, naming, measured }) => {
+ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampleRate, bitrate, naming, measured }) => {
     const fs = require('fs');
     const os = require('os');
 
@@ -255,13 +255,24 @@ ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampl
                 `loudnorm=I=${targetLkfs}:TP=0:LRA=11`
             ];
 
-            const cmd = ffmpeg(inputPath)
+            let cmd = ffmpeg(inputPath)
                 .audioFilters(audioFilters)
-                .videoCodec('copy')
-                .on('progress', (progress) => {
-                    const percent = Math.min(100, Math.round(progress.percent || 0));
-                    event.sender.send('conversion-progress', percent);
-                })
+                .videoCodec('copy');
+
+            // Apply sample rate if specified
+            if (sampleRate) {
+                cmd = cmd.audioFrequency(parseInt(sampleRate));
+            }
+
+            // Apply bitrate if specified (CBR mode)
+            if (bitrate) {
+                cmd = cmd.audioBitrate(bitrate);
+            }
+
+            cmd.on('progress', (progress) => {
+                const percent = Math.min(100, Math.round(progress.percent || 0));
+                event.sender.send('conversion-progress', percent);
+            })
                 .on('end', () => {
                     resolve();
                 })

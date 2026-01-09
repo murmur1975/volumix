@@ -3,28 +3,30 @@ import React from 'react';
 export default function ControlPanel({
     lkfs, setLkfs,
     sampleRate, setSampleRate,
-    disabled
+    bitrate, setBitrate,
+    disabled,
+    isPro = false
 }) {
     return (
         <div className="glass-panel controls">
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '1.5rem',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: '1rem',
                 alignItems: 'start'
             }}>
 
                 {/* LKFS Control */}
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span className="label" style={{ margin: 0 }}>Target Loudness</span>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>Target Loudness</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
                             <button
                                 onClick={() => setLkfs('-24')}
                                 disabled={disabled}
                                 style={{
-                                    padding: '2px 8px',
-                                    fontSize: '0.75rem',
+                                    padding: '2px 6px',
+                                    fontSize: '0.7rem',
                                     background: lkfs === '-24' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
                                     border: 'none',
                                     borderRadius: '4px',
@@ -32,14 +34,14 @@ export default function ControlPanel({
                                     cursor: 'pointer'
                                 }}
                             >
-                                TV (-24)
+                                TV
                             </button>
                             <button
                                 onClick={() => setLkfs('-14')}
                                 disabled={disabled}
                                 style={{
-                                    padding: '2px 8px',
-                                    fontSize: '0.75rem',
+                                    padding: '2px 6px',
+                                    fontSize: '0.7rem',
                                     background: lkfs === '-14' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
                                     border: 'none',
                                     borderRadius: '4px',
@@ -47,7 +49,7 @@ export default function ControlPanel({
                                     cursor: 'pointer'
                                 }}
                             >
-                                Web (-14)
+                                Web
                             </button>
                         </div>
                     </div>
@@ -70,43 +72,111 @@ export default function ControlPanel({
                         style={{
                             background: 'rgba(0,0,0,0.3)',
                             border: '1px solid rgba(255,255,255,0.1)',
-                            padding: '12px',
+                            padding: '10px',
                             borderRadius: '8px',
                             color: 'white',
                             width: '100%',
-                            fontSize: '1.2rem',
+                            fontSize: '1rem',
                             fontFamily: 'JetBrains Mono, monospace',
                             boxSizing: 'border-box'
                         }}
                     />
-                    <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
-                        Range: -70 to -5. Standard: TV (-24), Youtube (-14)
+                    <p style={{ fontSize: '0.7rem', color: '#888', marginTop: '6px' }}>
+                        -70 〜 -5 LKFS
                     </p>
                 </div>
 
                 {/* Sampling Rate */}
                 <div>
-                    <span className="label">Sampling Rate</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>Sampling Rate</span>
+                        {!isPro && (
+                            <span style={{
+                                fontSize: '0.65rem',
+                                color: '#ff9800',
+                                background: 'rgba(255, 152, 0, 0.2)',
+                                padding: '2px 4px',
+                                borderRadius: '4px'
+                            }}>
+                                Pro
+                            </span>
+                        )}
+                    </div>
                     <select
-                        value={sampleRate}
+                        value={isPro ? sampleRate : ''}
                         onChange={(e) => setSampleRate(e.target.value)}
-                        disabled={disabled}
+                        disabled={disabled || !isPro}
                         style={{
                             background: 'rgba(0,0,0,0.3)',
                             border: '1px solid rgba(255,255,255,0.1)',
-                            padding: '12px',
+                            padding: '10px',
                             borderRadius: '8px',
-                            color: 'white',
+                            color: isPro ? 'white' : 'rgba(255,255,255,0.5)',
                             width: '100%',
-                            cursor: 'pointer',
-                            boxSizing: 'border-box'
+                            cursor: isPro ? 'pointer' : 'not-allowed',
+                            boxSizing: 'border-box',
+                            opacity: isPro ? 1 : 0.6
                         }}
                     >
                         <option value="">Original</option>
-                        <option value="44100">44.1 kHz</option>
-                        <option value="48000">48 kHz</option>
-                        <option value="96000">96 kHz</option>
+                        {isPro && (
+                            <>
+                                <option value="44100">44.1 kHz</option>
+                                <option value="48000">48 kHz</option>
+                                <option value="96000">96 kHz</option>
+                            </>
+                        )}
                     </select>
+                    <p style={{ fontSize: '0.7rem', color: isPro ? '#888' : '#ff9800', marginTop: '6px' }}>
+                        {isPro ? '出力サンプリングレート' : 'Pro版で変更可能'}
+                    </p>
+                </div>
+
+                {/* Bitrate */}
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>Bitrate</span>
+                        {!isPro && (
+                            <span style={{
+                                fontSize: '0.65rem',
+                                color: '#ff9800',
+                                background: 'rgba(255, 152, 0, 0.2)',
+                                padding: '2px 4px',
+                                borderRadius: '4px'
+                            }}>
+                                Pro
+                            </span>
+                        )}
+                    </div>
+                    <select
+                        value={isPro ? bitrate : ''}
+                        onChange={(e) => setBitrate(e.target.value)}
+                        disabled={disabled || !isPro}
+                        style={{
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            color: isPro ? 'white' : 'rgba(255,255,255,0.5)',
+                            width: '100%',
+                            cursor: isPro ? 'pointer' : 'not-allowed',
+                            boxSizing: 'border-box',
+                            opacity: isPro ? 1 : 0.6
+                        }}
+                    >
+                        <option value="">VBR (自動)</option>
+                        {isPro && (
+                            <>
+                                <option value="128k">CBR 128 kbps</option>
+                                <option value="192k">CBR 192 kbps</option>
+                                <option value="256k">CBR 256 kbps</option>
+                                <option value="320k">CBR 320 kbps</option>
+                            </>
+                        )}
+                    </select>
+                    <p style={{ fontSize: '0.7rem', color: isPro ? '#888' : '#ff9800', marginTop: '6px' }}>
+                        {isPro ? '音声ビットレート' : 'Pro版でCBR選択可'}
+                    </p>
                 </div>
 
             </div>
