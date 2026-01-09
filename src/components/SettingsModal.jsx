@@ -1,17 +1,21 @@
 import React from 'react';
+import { useI18n } from '../i18n';
 
 export default function SettingsModal({ isOpen, onClose, config, onConfigChange }) {
+    const { t, lang, setLang, availableLanguages } = useI18n();
+
     if (!isOpen) return null;
 
-    // Local state for editing to allow cancellation (optional) or just direct sync.
-    // Let's use direct sync for simplicity as per thought process, but maybe safer to direct sync.
-    // Actually, handling local state inside modal involves more code. Let's rely on parent state for now.
-
     const modes = [
-        { id: 'lkfs', label: 'Target LKFS', description: 'Append target value (e.g. _-14.0LKFS)' },
-        { id: 'custom', label: 'Custom Text', description: 'Append fixed text (e.g. _volumix)' },
-        { id: 'timestamp', label: 'Timestamp', description: 'Append date & time (e.g. _250109-1230)' },
+        { id: 'lkfs', label: t('targetLkfsOption'), description: t('targetLkfsDesc') },
+        { id: 'custom', label: t('customTextOption'), description: t('customTextDesc') },
+        { id: 'timestamp', label: t('timestampOption'), description: t('timestampDesc') },
     ];
+
+    const languageLabels = {
+        ja: '日本語',
+        en: 'English'
+    };
 
     return (
         <div style={{
@@ -39,12 +43,40 @@ export default function SettingsModal({ isOpen, onClose, config, onConfigChange 
                 onClick={e => e.stopPropagation()}
             >
                 <h2 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span>⚙️</span> Output Settings
+                    <span>⚙️</span> {t('outputSettings')}
                 </h2>
+
+                {/* Language Selection */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>
+                        🌐 LANGUAGE
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {availableLanguages.map(langCode => (
+                            <button
+                                key={langCode}
+                                onClick={() => setLang(langCode)}
+                                style={{
+                                    flex: 1,
+                                    padding: '10px 16px',
+                                    borderRadius: '8px',
+                                    border: lang === langCode ? '1px solid var(--primary-color)' : '1px solid rgba(255,255,255,0.2)',
+                                    background: lang === langCode ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.05)',
+                                    color: lang === langCode ? 'var(--primary-color)' : 'white',
+                                    fontWeight: lang === langCode ? 'bold' : 'normal',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {languageLabels[langCode] || langCode}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <label style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'bold' }}>
-                        FILENAME SUFFIX
+                        {t('filenameSuffix')}
                     </label>
 
                     {modes.map(mode => (
@@ -122,7 +154,7 @@ export default function SettingsModal({ isOpen, onClose, config, onConfigChange 
                             cursor: 'pointer'
                         }}
                     >
-                        Close
+                        {t('close')}
                     </button>
                 </div>
             </div>

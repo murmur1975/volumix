@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '../i18n';
 
 export default function ControlPanel({
     lkfs, setLkfs,
@@ -7,6 +8,8 @@ export default function ControlPanel({
     disabled,
     isPro = false
 }) {
+    const { t } = useI18n();
+
     return (
         <div className="glass-panel controls">
             <div style={{
@@ -19,7 +22,7 @@ export default function ControlPanel({
                 {/* LKFS Control */}
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>Target Loudness</span>
+                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>{t('targetLoudness')}</span>
                         <div style={{ display: 'flex', gap: '4px' }}>
                             <button
                                 onClick={() => setLkfs('-24')}
@@ -89,7 +92,7 @@ export default function ControlPanel({
                 {/* Sampling Rate */}
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>Sampling Rate</span>
+                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>{t('samplingRate')}</span>
                         {!isPro && (
                             <span style={{
                                 fontSize: '0.65rem',
@@ -98,7 +101,7 @@ export default function ControlPanel({
                                 padding: '2px 4px',
                                 borderRadius: '4px'
                             }}>
-                                Pro
+                                {t('proOnly')}
                             </span>
                         )}
                     </div>
@@ -118,7 +121,7 @@ export default function ControlPanel({
                             opacity: isPro ? 1 : 0.6
                         }}
                     >
-                        <option value="">Original</option>
+                        <option value="">{t('original')}</option>
                         {isPro && (
                             <>
                                 <option value="44100">44.1 kHz</option>
@@ -128,14 +131,14 @@ export default function ControlPanel({
                         )}
                     </select>
                     <p style={{ fontSize: '0.7rem', color: isPro ? '#888' : '#ff9800', marginTop: '6px' }}>
-                        {isPro ? '出力サンプリングレート' : 'Pro版で変更可能'}
+                        {isPro ? t('samplingRateNote') : t('samplingRateProNote')}
                     </p>
                 </div>
 
                 {/* Bitrate */}
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>Bitrate</span>
+                        <span className="label" style={{ margin: 0, fontSize: '0.85rem' }}>{t('bitrate')}</span>
                         {!isPro && (
                             <span style={{
                                 fontSize: '0.65rem',
@@ -144,7 +147,7 @@ export default function ControlPanel({
                                 padding: '2px 4px',
                                 borderRadius: '4px'
                             }}>
-                                Pro
+                                {t('proOnly')}
                             </span>
                         )}
                     </div>
@@ -164,7 +167,7 @@ export default function ControlPanel({
                             opacity: isPro ? 1 : 0.6
                         }}
                     >
-                        <option value="">VBR (自動)</option>
+                        <option value="">{t('vbrAuto')}</option>
                         {isPro && (
                             <>
                                 <option value="128k">CBR 128 kbps</option>
@@ -175,7 +178,7 @@ export default function ControlPanel({
                         )}
                     </select>
                     <p style={{ fontSize: '0.7rem', color: isPro ? '#888' : '#ff9800', marginTop: '6px' }}>
-                        {isPro ? '音声ビットレート' : 'Pro版でCBR選択可'}
+                        {isPro ? t('bitrateNote') : t('bitrateProNote')}
                     </p>
                 </div>
 

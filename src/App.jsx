@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useI18n } from './i18n'
 import FileDropper from './components/FileDropper'
 import ControlPanel from './components/ControlPanel'
 import ProgressBar from './components/ProgressBar'
@@ -7,6 +8,7 @@ import SettingsModal from './components/SettingsModal'
 import LicenseModal from './components/LicenseModal'
 
 function App() {
+  const { t } = useI18n();
   // Multi-file state
   const [files, setFiles] = useState([])
   const [lkfs, setLkfs] = useState('-14')
@@ -64,7 +66,7 @@ function App() {
     // Free version: limit to 1 file at a time
     let filesToAdd = newFiles;
     if (!isPro && newFiles.length > 1) {
-      setMessage('⚠️ Free版は一度に1ファイルまでです。Pro版へアップグレードすると複数ファイルを同時に処理できます。');
+      setMessage(t('filesAddedLimit'));
       filesToAdd = [newFiles[0]];
     }
 
@@ -104,7 +106,7 @@ function App() {
         ));
       }
     }
-  }, [isPro]);
+  }, [isPro, t]);
 
   // Toggle single file selection
   const handleToggleFile = useCallback((fileId) => {
@@ -127,13 +129,13 @@ function App() {
   const handleStart = async () => {
     const selectedFiles = files.filter(f => f.selected && f.status === 'ready');
     if (selectedFiles.length === 0) {
-      setMessage('処理するファイルが選択されていません');
+      setMessage(t('freeVersionLimit'));
       return;
     }
 
     // Free version: limit to 1 file at a time
     if (!isPro && selectedFiles.length > 1) {
-      setMessage('⚠️ Free版は一度に1ファイルずつしか処理できません。処理するファイルを1つだけ選択してください。Pro版へアップグレードすると複数ファイルを同時に処理できます。');
+      setMessage(t('freeVersionLimit'));
       return;
     }
 
@@ -141,7 +143,7 @@ function App() {
     if (!isPro) {
       const info = await window.electronAPI.getUsageInfo();
       if (info.remaining < selectedFiles.length) {
-        setMessage(`⚠️ レート制限に達しました（残り${info.remaining}ファイル / 30分）。Pro版へアップグレードすると無制限に処理できます。`);
+        setMessage(t('rateLimitReached'));
         return;
       }
     }
@@ -280,7 +282,7 @@ function App() {
           onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
         >
-          {isPro ? '🌟 Pro' : '🆓 Free'}
+          {isPro ? t('proBadge') : t('freeBadge')}
         </button>
       </div>
 
@@ -292,7 +294,7 @@ function App() {
           color: 'rgba(255,255,255,0.6)',
           marginBottom: '1rem'
         }}>
-          残り {usageInfo.remaining} / {usageInfo.limit} ファイル（30分間）
+          {t('remainingFiles', { count: `${usageInfo.remaining} / ${usageInfo.limit}` })}
         </div>
       )}
 
@@ -315,18 +317,20 @@ function App() {
 
       <ProgressBar progress={progress} status={status} />
 
-      {message && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '1rem',
-          borderRadius: '8px',
-          background: status === 'error' ? 'rgba(255,0,0,0.2)' : 'rgba(0,255,0,0.2)',
-          border: `1px solid ${status === 'error' ? 'red' : 'lightgreen'}`,
-          textAlign: 'center'
-        }}>
-          {message}
-        </div>
-      )}
+      {
+        message && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '1rem',
+            borderRadius: '8px',
+            background: status === 'error' ? 'rgba(255,0,0,0.2)' : 'rgba(0,255,0,0.2)',
+            border: `1px solid ${status === 'error' ? 'red' : 'lightgreen'}`,
+            textAlign: 'center'
+          }}>
+            {message}
+          </div>
+        )
+      }
 
       <div style={{ marginTop: '2rem', textAlign: 'center' }}>
         <button
@@ -357,7 +361,7 @@ function App() {
           }
         }}
       />
-    </div>
+    </div >
   )
 }
 

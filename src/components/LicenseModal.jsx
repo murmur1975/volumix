@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useI18n } from '../i18n';
 
 function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
+    const { t, checkoutUrl } = useI18n();
     const [licenseKey, setLicenseKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
@@ -9,7 +11,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
 
     const handleActivate = async () => {
         if (!licenseKey.trim()) {
-            setMessage({ text: 'ライセンスキーを入力してください', type: 'error' });
+            setMessage({ text: t('enterLicenseKey'), type: 'error' });
             return;
         }
 
@@ -28,7 +30,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                 setMessage({ text: result.message, type: 'error' });
             }
         } catch {
-            setMessage({ text: 'エラーが発生しました', type: 'error' });
+            setMessage({ text: t('errorOccurred'), type: 'error' });
         } finally {
             setIsLoading(false);
         }
@@ -42,7 +44,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
             onStatusChange(false);
             setLicenseKey('');
         } catch {
-            setMessage({ text: 'エラーが発生しました', type: 'error' });
+            setMessage({ text: t('errorOccurred'), type: 'error' });
         } finally {
             setIsLoading(false);
         }
@@ -83,7 +85,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent'
                     }}>
-                        ライセンス管理
+                        {t('licenseManagement')}
                     </h2>
                     <button
                         onClick={onClose}
@@ -118,14 +120,14 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                         color: 'rgba(255,255,255,0.7)',
                         marginBottom: '0.5rem'
                     }}>
-                        現在のプラン
+                        {t('currentPlan')}
                     </div>
                     <div style={{
                         fontSize: '1.5rem',
                         fontWeight: 'bold',
                         color: isPro ? '#00c853' : '#ff9800'
                     }}>
-                        {isPro ? '🎉 Pro 版' : '🆓 Free 版'}
+                        {isPro ? t('proPlan') : t('freePlan')}
                     </div>
                     {!isPro && (
                         <div style={{
@@ -133,7 +135,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                             color: 'rgba(255,255,255,0.5)',
                             marginTop: '0.5rem'
                         }}>
-                            ※ 一度に1ファイル、30分間に10ファイルまで
+                            {t('freePlanNote')}
                         </div>
                     )}
                 </div>
@@ -148,7 +150,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                                 fontSize: '0.9rem',
                                 color: 'rgba(255,255,255,0.8)'
                             }}>
-                                ライセンスキー
+                                {t('licenseKey')}
                             </label>
                             <input
                                 type="text"
@@ -188,7 +190,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                                 transition: 'opacity 0.2s'
                             }}
                         >
-                            {isLoading ? '確認中...' : 'ライセンスを有効化'}
+                            {isLoading ? t('verifying') : t('activateLicense')}
                         </button>
                     </>
                 )}
@@ -210,7 +212,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                             opacity: isLoading ? 0.5 : 1
                         }}
                     >
-                        {isLoading ? '処理中...' : 'ライセンスを解除'}
+                        {isLoading ? t('processingLicense') : t('deactivateLicense')}
                     </button>
                 )}
 
@@ -240,10 +242,10 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                         fontSize: '0.85rem',
                         color: 'rgba(255,255,255,0.6)'
                     }}>
-                        ライセンスをお持ちでない方は
+                        {t('noLicenseYet')}
                         <br />
                         <a
-                            href="https://volumix.lemonsqueezy.com"
+                            href={checkoutUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
@@ -251,7 +253,7 @@ function LicenseModal({ isOpen, onClose, isPro, onStatusChange }) {
                                 textDecoration: 'none'
                             }}
                         >
-                            こちらから購入 →
+                            {t('purchaseHere')}
                         </a>
                     </div>
                 )}
