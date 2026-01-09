@@ -3,10 +3,27 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
+const Store = require('electron-store');
+const { machineIdSync } = require('node-machine-id');
+const axios = require('axios');
 
 // Set ffmpeg paths
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
+
+// Initialize persistent store
+const store = new Store({
+    defaults: {
+        licenseKey: null,
+        instanceId: null,
+        isPro: false,
+        usageHistory: [] // Array of timestamps (ms) for rate limiting
+    }
+});
+
+// Rate limit settings
+const RATE_LIMIT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+const RATE_LIMIT_MAX_FILES = 10;
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -346,5 +363,129 @@ ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampl
     } catch (error) {
         console.error('[Main] Conversion error:', error);
         throw error;
+    }
+});
+
+// ============================================================
+// License and Usage Tracking IPC Handlers
+// ============================================================
+
+// Get Pro status
+ipcMain.handle('get-pro-status', async () => {
+    return {
+        isPro: store.get('isPro', false),
+        licenseKey: store.get('licenseKey', null)
+    };
+});
+
+// Get usage info for rate limiting
+ipcMain.handle('get-usage-info', async () => {
+    const now = Date.now();
+    let usageHistory = store.get('usageHistory', []);
+
+    // Filter to only include timestamps within the rate limit window
+    usageHistory = usageHistory.filter(ts => (now - ts) < RATE_LIMIT_WINDOW_MS);
+    store.set('usageHistory', usageHistory);
+
+    return {
+        count: usageHistory.length,
+        limit: RATE_LIMIT_MAX_FILES,
+        windowMs: RATE_LIMIT_WINDOW_MS,
+        remaining: Math.max(0, RATE_LIMIT_MAX_FILES - usageHistory.length)
+    };
+});
+
+// Record a file as processed (for rate limiting)
+ipcMain.handle('record-file-processed', async () => {
+    const usageHistory = store.get('usageHistory', []);
+    usageHistory.push(Date.now());
+    store.set('usageHistory', usageHistory);
+    return { success: true };
+});
+
+// Activate license with Lemon Squeezy
+ipcMain.handle('activate-license', async (event, licenseKey) => {
+    try {
+        const instanceId = machineIdSync();
+
+        // Call Lemon Squeezy API to activate
+        const response = await axios.post(
+            'https://api.lemonsqueezy.com/v1/licenses/activate',
+            {
+                license_key: licenseKey,
+                instance_name: `Volumix-${instanceId.substring(0, 8)}`
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            }
+        );
+
+        if (response.data && response.data.activated) {
+            store.set('licenseKey', licenseKey);
+            store.set('instanceId', response.data.instance?.id || instanceId);
+            store.set('isPro', true);
+            return { success: true, message: 'ライセンスが有効化されました' };
+        } else {
+            return { success: false, message: response.data?.error || 'アクティベーションに失敗しました' };
+        }
+    } catch (error) {
+        console.error('[Main] License activation error:', error.response?.data || error.message);
+
+        // For development/testing: allow a test key
+        if (licenseKey === 'VOLUMIX-DEV-TEST-KEY') {
+            store.set('licenseKey', licenseKey);
+            store.set('instanceId', 'dev-instance');
+            store.set('isPro', true);
+            return { success: true, message: '開発用ライセンスが有効化されました' };
+        }
+
+        return {
+            success: false,
+            message: error.response?.data?.error || 'ライセンスの検証中にエラーが発生しました'
+        };
+    }
+});
+
+// Deactivate license
+ipcMain.handle('deactivate-license', async () => {
+    try {
+        const licenseKey = store.get('licenseKey');
+        const instanceId = store.get('instanceId');
+
+        if (licenseKey && instanceId && licenseKey !== 'VOLUMIX-DEV-TEST-KEY') {
+            // Call Lemon Squeezy API to deactivate
+            await axios.post(
+                'https://api.lemonsqueezy.com/v1/licenses/deactivate',
+                {
+                    license_key: licenseKey,
+                    instance_id: instanceId
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                }
+            );
+        }
+
+        // Clear local state
+        store.set('licenseKey', null);
+        store.set('instanceId', null);
+        store.set('isPro', false);
+
+        return { success: true, message: 'ライセンスが解除されました' };
+    } catch (error) {
+        console.error('[Main] License deactivation error:', error.message);
+
+        // Still clear local state even if API fails
+        store.set('licenseKey', null);
+        store.set('instanceId', null);
+        store.set('isPro', false);
+
+        return { success: true, message: 'ライセンスが解除されました（ローカルのみ）' };
     }
 });

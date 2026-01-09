@@ -16,5 +16,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     onProgress: (callback) => ipcRenderer.on('conversion-progress', (_event, value) => callback(value)),
-    startConversion: (config) => ipcRenderer.invoke('start-conversion', config)
+    startConversion: (config) => ipcRenderer.invoke('start-conversion', config),
+
+    // License APIs
+    getProStatus: () => ipcRenderer.invoke('get-pro-status'),
+    getUsageInfo: () => ipcRenderer.invoke('get-usage-info'),
+    activateLicense: (licenseKey) => ipcRenderer.invoke('activate-license', licenseKey),
+    deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
+    recordFileProcessed: () => ipcRenderer.invoke('record-file-processed')
 });

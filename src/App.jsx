@@ -4,6 +4,7 @@ import ControlPanel from './components/ControlPanel'
 import ProgressBar from './components/ProgressBar'
 import FileTable from './components/FileTable'
 import SettingsModal from './components/SettingsModal'
+import LicenseModal from './components/LicenseModal'
 
 function App() {
   // Multi-file state
@@ -16,6 +17,9 @@ function App() {
 
   // Settings
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isLicenseOpen, setIsLicenseOpen] = useState(false)
+  const [isPro, setIsPro] = useState(false)
+  const [usageInfo, setUsageInfo] = useState({ remaining: 10, limit: 10 })
   const [namingConfig, setNamingConfig] = useState({
     mode: 'lkfs',
     customText: '_volumix'
@@ -30,6 +34,24 @@ function App() {
         setProgress(value)
       })
     }
+
+    // Check Pro status on mount
+    const checkProStatus = async () => {
+      if (window.electronAPI && window.electronAPI.getProStatus) {
+        const status = await window.electronAPI.getProStatus()
+        setIsPro(status.isPro)
+      }
+    }
+    checkProStatus()
+
+    // Check usage info
+    const checkUsageInfo = async () => {
+      if (window.electronAPI && window.electronAPI.getUsageInfo) {
+        const info = await window.electronAPI.getUsageInfo()
+        setUsageInfo(info)
+      }
+    }
+    checkUsageInfo()
   }, [])
 
   // Handle multiple files selected
@@ -38,8 +60,15 @@ function App() {
 
     if (!newFiles || newFiles.length === 0) return;
 
+    // Free version: limit to 1 file at a time
+    let filesToAdd = newFiles;
+    if (!isPro && newFiles.length > 1) {
+      setMessage('⚠️ Free版は一度に1ファイルまでです。Pro版へアップグレードすると複数ファイルを同時に処理できます。');
+      filesToAdd = [newFiles[0]];
+    }
+
     // Add new files to state with initial status
-    const fileEntries = newFiles.map(f => ({
+    const fileEntries = filesToAdd.map(f => ({
       id: generateId(),
       name: f.name,
       path: f.path,
@@ -74,7 +103,7 @@ function App() {
         ));
       }
     }
-  }, []);
+  }, [isPro]);
 
   // Toggle single file selection
   const handleToggleFile = useCallback((fileId) => {
@@ -97,8 +126,23 @@ function App() {
   const handleStart = async () => {
     const selectedFiles = files.filter(f => f.selected && f.status === 'ready');
     if (selectedFiles.length === 0) {
-      setMessage('No files selected for processing');
+      setMessage('処理するファイルが選択されていません');
       return;
+    }
+
+    // Free version: limit to 1 file at a time
+    if (!isPro && selectedFiles.length > 1) {
+      setMessage('⚠️ Free版は一度に1ファイルずつしか処理できません。処理するファイルを1つだけ選択してください。Pro版へアップグレードすると複数ファイルを同時に処理できます。');
+      return;
+    }
+
+    // Free version: check rate limit
+    if (!isPro) {
+      const info = await window.electronAPI.getUsageInfo();
+      if (info.remaining < selectedFiles.length) {
+        setMessage(`⚠️ レート制限に達しました（残り${info.remaining}ファイル / 30分）。Pro版へアップグレードすると無制限に処理できます。`);
+        return;
+      }
     }
 
     setStatus('processing');
@@ -150,10 +194,21 @@ function App() {
 
       processed++;
       setProgress(Math.round((processed / total) * 100));
+
+      // Record file processed for rate limiting (Free version)
+      if (!isPro && window.electronAPI.recordFileProcessed) {
+        await window.electronAPI.recordFileProcessed();
+      }
+    }
+
+    // Update usage info after processing
+    if (!isPro && window.electronAPI.getUsageInfo) {
+      const info = await window.electronAPI.getUsageInfo();
+      setUsageInfo(info);
     }
 
     setStatus('done');
-    setMessage(`Processed ${processed} file(s) successfully!`);
+    setMessage(`${processed}個のファイルを処理しました！`);
   };
 
   // Check if any file is processing
@@ -196,9 +251,50 @@ function App() {
         >
           ⚙️
         </button>
+
+        {/* Pro/Free Badge */}
+        <button
+          onClick={() => setIsLicenseOpen(true)}
+          style={{
+            position: 'absolute',
+            top: '0.5rem',
+            left: '0',
+            background: isPro
+              ? 'linear-gradient(135deg, #00c853 0%, #00796b 100%)'
+              : 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+            border: 'none',
+            borderRadius: '20px',
+            padding: '0.3rem 0.8rem',
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            color: 'white',
+            boxShadow: isPro
+              ? '0 2px 8px rgba(0, 200, 83, 0.4)'
+              : '0 2px 8px rgba(255, 152, 0, 0.4)',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          title="ライセンス管理"
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+        >
+          {isPro ? '🌟 Pro' : '🆓 Free'}
+        </button>
       </div>
 
-      <FileDropper onFilesSelected={handleFilesSelected} multiple={true} />
+      {/* Usage info for Free version */}
+      {!isPro && (
+        <div style={{
+          textAlign: 'center',
+          fontSize: '0.85rem',
+          color: 'rgba(255,255,255,0.6)',
+          marginBottom: '1rem'
+        }}>
+          残り {usageInfo.remaining} / {usageInfo.limit} ファイル（30分間）
+        </div>
+      )}
+
+      <FileDropper onFilesSelected={handleFilesSelected} multiple={isPro} />
 
       <FileTable
         files={files}
@@ -243,6 +339,19 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         config={namingConfig}
         onConfigChange={setNamingConfig}
+      />
+
+      <LicenseModal
+        isOpen={isLicenseOpen}
+        onClose={() => setIsLicenseOpen(false)}
+        isPro={isPro}
+        onStatusChange={(newStatus) => {
+          setIsPro(newStatus);
+          // Refresh usage info when license status changes
+          if (!newStatus && window.electronAPI.getUsageInfo) {
+            window.electronAPI.getUsageInfo().then(info => setUsageInfo(info));
+          }
+        }}
       />
     </div>
   )
