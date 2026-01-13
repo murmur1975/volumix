@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 /**
  * ライセンス管理モーダル
  * Pro版へのアップグレード、ライセンス認証、解除を行う
  */
 export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusChange }) {
+    const { t, language } = useLanguage();
     const [licenseKey, setLicenseKey] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
@@ -14,7 +16,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
 
     const handleActivate = async () => {
         if (!licenseKey.trim()) {
-            setMessage('ライセンスキーを入力してください');
+            setMessage(t('license.enterKey'));
             setMessageType('error');
             return;
         }
@@ -26,7 +28,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
             const result = await window.electronAPI.activateLicense(licenseKey.trim());
 
             if (result.success) {
-                setMessage(result.message);
+                setMessage(t('license.activationSuccess'));
                 setMessageType('success');
                 setLicenseKey('');
                 // ステータスを更新
@@ -35,11 +37,11 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                     onStatusChange(newStatus);
                 }
             } else {
-                setMessage(result.message || '認証に失敗しました');
+                setMessage(result.message || t('common.error'));
                 setMessageType('error');
             }
         } catch (error) {
-            setMessage(`エラー: ${error.message}`);
+            setMessage(`${t('common.error')}: ${error.message}`);
             setMessageType('error');
         } finally {
             setLoading(false);
@@ -47,7 +49,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
     };
 
     const handleDeactivate = async () => {
-        if (!confirm('ライセンスを解除しますか？\nこのPCでの認証が解除され、Free版に戻ります。')) {
+        if (!confirm(t('license.deactivateConfirm'))) {
             return;
         }
 
@@ -58,18 +60,18 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
             const result = await window.electronAPI.deactivateLicense();
 
             if (result.success) {
-                setMessage('ライセンスが解除されました');
+                setMessage(t('license.deactivationSuccess'));
                 setMessageType('info');
                 if (onStatusChange) {
                     const newStatus = await window.electronAPI.getLicenseStatus();
                     onStatusChange(newStatus);
                 }
             } else {
-                setMessage(result.message || '解除に失敗しました');
+                setMessage(result.message || t('common.error'));
                 setMessageType('error');
             }
         } catch (error) {
-            setMessage(`エラー: ${error.message}`);
+            setMessage(`${t('common.error')}: ${error.message}`);
             setMessageType('error');
         } finally {
             setLoading(false);
@@ -77,6 +79,11 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
     };
 
     const isPro = licenseStatus?.isPro;
+
+    // 言語に応じた購入リンク
+    const purchaseUrl = language === 'ja'
+        ? 'https://techdesignlab.lemonsqueezy.com/checkout/buy/6713bd8c-8b0e-4c53-8788-9bfd1796b3ce'
+        : 'https://techdesignlab.lemonsqueezy.com/checkout/buy/d24d927e-7186-493d-a7e2-2af0860f7918';
 
     return (
         <div style={{
@@ -116,7 +123,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent'
                     }}>
-                        {isPro ? '✨ Pro版' : 'ライセンス'}
+                        {isPro ? t('license.pro') : t('license.title')}
                     </h2>
                     <button
                         onClick={onClose}
@@ -146,14 +153,14 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                         color: 'rgba(255,255,255,0.7)',
                         marginBottom: '0.5rem'
                     }}>
-                        現在のプラン
+                        {t('license.currentPlan')}
                     </div>
                     <div style={{
                         fontSize: '1.2rem',
                         fontWeight: 'bold',
                         color: isPro ? '#ffd700' : 'white'
                     }}>
-                        {isPro ? 'Pro版（ライセンス認証済み）' : 'Free版'}
+                        {isPro ? t('license.proActive') : t('license.freeVersion')}
                     </div>
 
                     {!isPro && licenseStatus?.rateLimit && (
@@ -162,7 +169,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                             fontSize: '0.85rem',
                             color: 'rgba(255,255,255,0.6)'
                         }}>
-                            本日の処理: {licenseStatus.rateLimit.used} / {licenseStatus.rateLimit.limit} ファイル
+                            {t('license.todayUsage')} {licenseStatus.rateLimit.used} / {licenseStatus.rateLimit.limit} {t('license.files')}
                         </div>
                     )}
                 </div>
@@ -178,7 +185,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                             marginBottom: '0.75rem',
                             color: 'rgba(255,255,255,0.9)'
                         }}>
-                            🚀 Pro版にアップグレードすると:
+                            {t('license.upgradeTitle')}
                         </div>
                         <ul style={{
                             margin: 0,
@@ -186,9 +193,9 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                             color: 'rgba(255,255,255,0.7)',
                             lineHeight: '1.8'
                         }}>
-                            <li>複数ファイルの<strong style={{ color: '#00e5ff' }}>一括処理</strong>が可能</li>
-                            <li>96kHz サンプリングレートに対応</li>
-                            <li>Rate Limit なし</li>
+                            <li><strong style={{ color: '#00e5ff' }}>{t('license.feature1')}</strong></li>
+                            <li>{t('license.feature2')}</li>
+                            <li>{t('license.feature3')}</li>
                         </ul>
                     </div>
                 )}
@@ -201,7 +208,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                             color: 'rgba(255,255,255,0.5)',
                             marginBottom: '1rem'
                         }}>
-                            このPCでライセンスが認証されています。
+                            {t('license.activated')}
                         </div>
                         <button
                             onClick={handleDeactivate}
@@ -217,7 +224,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                                 fontSize: '0.9rem'
                             }}
                         >
-                            {loading ? '処理中...' : 'ライセンスを解除する'}
+                            {loading ? t('license.deactivating') : t('license.deactivate')}
                         </button>
                     </div>
                 ) : (
@@ -227,7 +234,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                                 fontSize: '0.9rem',
                                 color: 'rgba(255,255,255,0.8)'
                             }}>
-                                ライセンスキー
+                                {t('license.licenseKey')}
                             </label>
                         </div>
                         <input
@@ -264,7 +271,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                                 opacity: loading || !licenseKey.trim() ? 0.5 : 1
                             }}
                         >
-                            {loading ? '認証中...' : 'ライセンスを認証'}
+                            {loading ? t('license.activating') : t('license.activate')}
                         </button>
 
                         <div style={{
@@ -272,7 +279,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                             textAlign: 'center'
                         }}>
                             <a
-                                href="https://techdesignlab.lemonsqueezy.com/checkout/buy/d24d927e-7186-493d-a7e2-2af0860f7918"
+                                href={purchaseUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
@@ -281,7 +288,7 @@ export default function LicenseModal({ isOpen, onClose, licenseStatus, onStatusC
                                     textDecoration: 'none'
                                 }}
                             >
-                                ライセンスを購入する →
+                                {t('license.purchaseLink')}
                             </a>
                         </div>
                     </div>

@@ -5,6 +5,7 @@ import ProgressBar from './components/ProgressBar'
 import FileTable from './components/FileTable'
 import SettingsModal from './components/SettingsModal'
 import LicenseModal from './components/LicenseModal'
+import { useLanguage } from './contexts/LanguageContext'
 
 function App() {
   // Multi-file state
@@ -25,6 +26,9 @@ function App() {
   // License state
   const [isLicenseOpen, setIsLicenseOpen] = useState(false)
   const [licenseStatus, setLicenseStatus] = useState({ isPro: false, rateLimit: null })
+
+  // Language
+  const { t, tFormat } = useLanguage()
 
   // Generate unique ID
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -113,13 +117,13 @@ function App() {
   const handleStart = async () => {
     const selectedFiles = files.filter(f => f.selected && f.status === 'ready');
     if (selectedFiles.length === 0) {
-      setMessage('処理するファイルが選択されていません');
+      setMessage(t('message.noFilesSelected'));
       return;
     }
 
     // Check Free version restrictions
     if (!licenseStatus.isPro && selectedFiles.length > 1) {
-      setMessage('Free版は一度に1ファイルまでです。Pro版にアップグレードすると無制限になります。');
+      setMessage(t('message.freeLimitExceeded'));
       setIsLicenseOpen(true);
       return;
     }
@@ -129,7 +133,7 @@ function App() {
       const rateLimitResult = await window.electronAPI.recordFileProcessing(selectedFiles.length);
       if (!rateLimitResult.allowed) {
         const resetTime = rateLimitResult.resetAt ? new Date(rateLimitResult.resetAt).toLocaleTimeString() : '';
-        setMessage(`Rate Limit: 30分間に10ファイルまでです。${resetTime ? `リセット時刻: ${resetTime}` : ''}`);
+        setMessage(`${t('message.rateLimitExceeded')}${resetTime ? ` ${t('message.resetAt')} ${resetTime}` : ''}`);
         return;
       }
     }
@@ -186,7 +190,7 @@ function App() {
     }
 
     setStatus('done');
-    setMessage(`Processed ${processed} file(s) successfully!`);
+    setMessage(tFormat('message.processedSuccess', { count: processed }));
   };
 
   // Check if any file is processing
@@ -291,9 +295,9 @@ function App() {
           }}
         >
           <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>
-            🚀 Pro版で複数ファイルの一括処理が可能に
+            {t('upgrade.banner')}
           </span>
-          <span style={{ color: '#00e5ff', fontSize: '0.85rem' }}>アップグレード →</span>
+          <span style={{ color: '#00e5ff', fontSize: '0.85rem' }}>{t('upgrade.cta')}</span>
         </div>
       )}
 
@@ -309,10 +313,10 @@ function App() {
           }}
         >
           {isProcessing
-            ? 'Processing...'
+            ? t('common.processing')
             : exceedsLimit
-              ? `Free版: 一度に1ファイルまで`
-              : `処理開始${hasSelectedFiles ? ` (${selectedCount})` : ''}`
+              ? t('button.freeLimit')
+              : `${t('button.startProcessing')}${hasSelectedFiles ? ` (${selectedCount})` : ''}`
           }
         </button>
       </div>

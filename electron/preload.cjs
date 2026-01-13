@@ -24,5 +24,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     recordFileProcessing: (fileCount) => ipcRenderer.invoke('record-file-processing', { fileCount }),
     activateLicense: (licenseKey) => ipcRenderer.invoke('activate-license', { licenseKey }),
     validateLicense: () => ipcRenderer.invoke('validate-license'),
-    deactivateLicense: () => ipcRenderer.invoke('deactivate-license')
+    deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
+
+    // 言語設定API
+    getLanguage: () => ipcRenderer.invoke('get-language'),
+    setLanguage: (lang) => ipcRenderer.invoke('set-language', { lang })
 });

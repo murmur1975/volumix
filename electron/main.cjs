@@ -394,3 +394,18 @@ ipcMain.handle('deactivate-license', async () => {
     console.log('[Main] Deactivation result:', result.success);
     return result;
 });
+
+// ========== 言語設定 IPC ハンドラ ==========
+const Store = require('electron-store');
+const settingsStore = new Store({ name: 'volumix-settings' });
+
+// 言語設定を取得
+ipcMain.handle('get-language', async () => {
+    return settingsStore.get('language', 'ja'); // デフォルトは日本語
+});
+
+// 言語設定を保存
+ipcMain.handle('set-language', async (event, { lang }) => {
+    settingsStore.set('language', lang);
+    return { success: true };
+});

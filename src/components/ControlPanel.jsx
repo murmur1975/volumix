@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function ControlPanel({
     lkfs, setLkfs,
@@ -6,6 +7,7 @@ export default function ControlPanel({
     disabled,
     isPro = false
 }) {
+    const { t } = useLanguage();
     return (
         <div className="glass-panel controls">
             <div style={{
@@ -18,7 +20,7 @@ export default function ControlPanel({
                 {/* LKFS Control */}
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span className="label" style={{ margin: 0 }}>Target Loudness</span>
+                        <span className="label" style={{ margin: 0 }}>{t('control.targetLoudness')}</span>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button
                                 onClick={() => setLkfs('-24')}
@@ -81,13 +83,13 @@ export default function ControlPanel({
                         }}
                     />
                     <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
-                        Range: -70 to -5. Standard: TV (-24), Youtube (-14)
+                        {t('control.lkfsRange')}
                     </p>
                 </div>
 
                 {/* Sampling Rate */}
                 <div>
-                    <span className="label">Sampling Rate</span>
+                    <span className="label">{t('control.samplingRate')}</span>
                     <select
                         value={isPro ? sampleRate : ''}
                         onChange={(e) => setSampleRate(e.target.value)}
@@ -104,14 +106,14 @@ export default function ControlPanel({
                             opacity: isPro ? 1 : 0.6
                         }}
                     >
-                        <option value="">Original</option>
-                        <option value="44100" disabled={!isPro}>44.1 kHz {!isPro ? '(Pro版)' : ''}</option>
-                        <option value="48000" disabled={!isPro}>48 kHz {!isPro ? '(Pro版)' : ''}</option>
-                        <option value="96000" disabled={!isPro}>96 kHz {!isPro ? '(Pro版)' : ''}</option>
+                        <option value="">{t('control.original')}</option>
+                        <option value="44100" disabled={!isPro}>44.1 kHz {!isPro ? t('control.proOnly') : ''}</option>
+                        <option value="48000" disabled={!isPro}>48 kHz {!isPro ? t('control.proOnly') : ''}</option>
+                        <option value="96000" disabled={!isPro}>96 kHz {!isPro ? t('control.proOnly') : ''}</option>
                     </select>
                     {!isPro && (
                         <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
-                            サンプリングレート変更はPro版で利用可能
+                            {t('control.samplingRateProHint')}
                         </p>
                     )}
                 </div>

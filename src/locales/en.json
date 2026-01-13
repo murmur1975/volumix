@@ -1,0 +1,95 @@
+{
+    "app": {
+        "title": "Volumix",
+        "pro": "Pro"
+    },
+    "common": {
+        "processing": "Processing...",
+        "close": "Close",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "error": "Error",
+        "success": "Success"
+    },
+    "dropzone": {
+        "title": "Drop video files here",
+        "subtitle": "or click to browse",
+        "hint": "Supports MP4 files"
+    },
+    "control": {
+        "targetLoudness": "Target Loudness",
+        "samplingRate": "Sampling Rate",
+        "original": "Original",
+        "proOnly": "(Pro)",
+        "samplingRateProHint": "Sample rate change available in Pro",
+        "lkfsRange": "Range: -70 to -5. Standard: TV (-24), YouTube (-14)"
+    },
+    "fileTable": {
+        "file": "File",
+        "original": "Original",
+        "result": "Result",
+        "status": "Status",
+        "selectAll": "Select All",
+        "deselectAll": "Deselect All"
+    },
+    "status": {
+        "analyzing": "Analyzing...",
+        "ready": "Ready",
+        "processing": "Processing...",
+        "done": "Done",
+        "error": "Error"
+    },
+    "button": {
+        "startProcessing": "Start Processing",
+        "freeLimit": "Free: 1 file at a time"
+    },
+    "message": {
+        "noFilesSelected": "No files selected for processing",
+        "freeLimitExceeded": "Free version is limited to 1 file at a time. Upgrade to Pro for unlimited.",
+        "rateLimitExceeded": "Rate Limit: Maximum 10 files per 30 minutes.",
+        "resetAt": "Reset at:",
+        "processedSuccess": "Processed {count} file(s) successfully!"
+    },
+    "upgrade": {
+        "banner": "🚀 Process multiple files at once with Pro",
+        "cta": "Upgrade →"
+    },
+    "settings": {
+        "title": "Settings",
+        "outputSettings": "Output Settings",
+        "filenameSuffix": "Filename Suffix",
+        "targetLkfs": "Target LKFS",
+        "targetLkfsDesc": "Append target value (e.g. _-14.0LKFS)",
+        "customText": "Custom Text",
+        "customTextDesc": "Append fixed text (e.g. _volumix)",
+        "timestamp": "Timestamp",
+        "timestampDesc": "Append date & time (e.g. _250109-1230)",
+        "language": "Language",
+        "license": "License"
+    },
+    "license": {
+        "title": "License",
+        "pro": "✨ Pro",
+        "free": "Free",
+        "currentPlan": "Current Plan",
+        "proActive": "Pro (License activated)",
+        "freeVersion": "Free Version",
+        "todayUsage": "Today's usage:",
+        "files": "files",
+        "upgradeTitle": "🚀 Upgrade to Pro:",
+        "feature1": "Process multiple files at once",
+        "feature2": "All sampling rates available",
+        "feature3": "No rate limit",
+        "licenseKey": "License Key",
+        "activate": "Activate License",
+        "activating": "Activating...",
+        "deactivate": "Deactivate License",
+        "deactivating": "Processing...",
+        "deactivateConfirm": "Deactivate license?\nThis PC will return to Free version.",
+        "purchaseLink": "Purchase a license →",
+        "activated": "License activated on this PC.",
+        "activationSuccess": "License activated successfully!",
+        "deactivationSuccess": "License deactivated.",
+        "enterKey": "Please enter a license key"
+    }
+}
