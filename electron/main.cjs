@@ -3,10 +3,14 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
+const license = require('./license.cjs');
 
 // Set ffmpeg paths
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
+
+// APIキー（環境変数から取得、なければハードコード - 本番環境では環境変数推奨）
+const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI5NGQ1OWNlZi1kYmI4LTRlYTUtYjE3OC1kMjU0MGZjZDY5MTkiLCJqdGkiOiI3OWUzMzdjNzA4MjU0OTczODllZGIwMjQxMDU2YjIyOTJiZDY2N2UwYjM0YzQ3YWQwMDJkN2IzNWY2ODU1ZWZhMTQwZjNjNDhkMWZkZTZiZSIsImlhdCI6MTc2ODMxMjAwNC44ODg4MywibmJmIjoxNzY4MzEyMDA0Ljg4ODgzMywiZXhwIjoyMDgyNjcyMDAwLjA0OTg3MSwic3ViIjoiNjI3ODAxNyIsInNjb3BlcyI6W119.C5Qmnyki-1swt_kbJ8eDUA4pwncDyc8HjiRTCRQIUCgxJJGyF6aO-dBQC22JKm8N8AthiT9ftdkhNS5QOiBekZoBFbTNS5xZ4yB6nuyK7oLYHQDMG3-4FF_YrXXz2o1j3AhlxMAVGz4uu104XoMWxgJ-hbX60wQmlx6kr2I_AmYasKxlKSq2AWOA8JPgECbwQ0gdY5ymKKw_ceFcmCEoXK_VHD0eBQKXE3rtwcVFsDE_7Hov1Do0XMXxRXx8AsQifOb0NIYlKSojWwVuHZt_LlBRKvGw8V9EmVerCvscxiOWEUcGcdJ0pDFTcLV2Svb2vCSGIQuTNYxvXUwlGhWcxCnjafFl4BR__wUmxEX23kkF_sEGI-eUa1kACts_0ryTnrtjckKTrtawwIxRpV-6Dp9yGZPTSYj-BhHAIuDXMgQyryMlEBjoo4Jkd-X8dRlXoiTBJ2-10BXewvxDR9YsKG0QfkivXfCYoz2QKFS0CmOWluK2C7r7TnVxmsSWNcSBeRTCeTtTl5Ya6olg_lB9aSfi7JRJzldfyjQWF1p0-NZEzvFkn0nu5ZSdYS3VFcHy2zNpXq2COPKOY3rbelkIn_WFUayzJWihpvzTFKWm3-PHsK_-xBg-mu6sB0vIkr8WaQijtTeirO4I5odEpDGlcbdGksH0w4jDnLA3jvS9Md4';
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -347,4 +351,46 @@ ipcMain.handle('start-conversion', async (event, { filePath, volume, lkfs, sampl
         console.error('[Main] Conversion error:', error);
         throw error;
     }
+});
+
+// ========== ライセンス管理 IPC ハンドラ ==========
+
+// ライセンス状態を取得
+ipcMain.handle('get-license-status', async () => {
+    const status = license.getLicenseStatus();
+    const rateLimit = license.getRateLimitStatus();
+    return { ...status, rateLimit };
+});
+
+// Free版制限をチェック
+ipcMain.handle('check-free-restrictions', async (event, { fileCount }) => {
+    const restrictions = license.checkFreeRestrictions(fileCount);
+    const rateLimit = license.getRateLimitStatus();
+    return { ...restrictions, rateLimit };
+});
+
+// ファイル処理をRate Limitに記録
+ipcMain.handle('record-file-processing', async (event, { fileCount }) => {
+    return license.recordFileProcessing(fileCount);
+});
+
+// ライセンスをアクティベート
+ipcMain.handle('activate-license', async (event, { licenseKey }) => {
+    console.log('[Main] Activating license...');
+    const result = await license.activateLicense(licenseKey, LEMON_SQUEEZY_API_KEY);
+    console.log('[Main] Activation result:', result.success);
+    return result;
+});
+
+// ライセンスを検証
+ipcMain.handle('validate-license', async () => {
+    return license.validateLicense(LEMON_SQUEEZY_API_KEY);
+});
+
+// ライセンスをデアクティベート
+ipcMain.handle('deactivate-license', async () => {
+    console.log('[Main] Deactivating license...');
+    const result = await license.deactivateLicense(LEMON_SQUEEZY_API_KEY);
+    console.log('[Main] Deactivation result:', result.success);
+    return result;
 });

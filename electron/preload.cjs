@@ -16,5 +16,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     onProgress: (callback) => ipcRenderer.on('conversion-progress', (_event, value) => callback(value)),
-    startConversion: (config) => ipcRenderer.invoke('start-conversion', config)
+    startConversion: (config) => ipcRenderer.invoke('start-conversion', config),
+
+    // ライセンス管理API
+    getLicenseStatus: () => ipcRenderer.invoke('get-license-status'),
+    checkFreeRestrictions: (fileCount) => ipcRenderer.invoke('check-free-restrictions', { fileCount }),
+    recordFileProcessing: (fileCount) => ipcRenderer.invoke('record-file-processing', { fileCount }),
+    activateLicense: (licenseKey) => ipcRenderer.invoke('activate-license', { licenseKey }),
+    validateLicense: () => ipcRenderer.invoke('validate-license'),
+    deactivateLicense: () => ipcRenderer.invoke('deactivate-license')
 });

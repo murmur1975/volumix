@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function SettingsModal({ isOpen, onClose, config, onConfigChange }) {
+export default function SettingsModal({ isOpen, onClose, config, onConfigChange, onOpenLicense, licenseStatus }) {
     if (!isOpen) return null;
 
     // Local state for editing to allow cancellation (optional) or just direct sync.
@@ -109,6 +109,47 @@ export default function SettingsModal({ isOpen, onClose, config, onConfigChange 
                     )}
                 </div>
 
+                {/* License Section */}
+                <div style={{
+                    marginTop: '2rem',
+                    paddingTop: '1.5rem',
+                    borderTop: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                    <label style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'bold', display: 'block', marginBottom: '1rem' }}>
+                        LICENSE
+                    </label>
+                    <div
+                        onClick={onOpenLicense}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px',
+                            background: licenseStatus?.isPro
+                                ? 'rgba(255, 215, 0, 0.1)'
+                                : 'rgba(255, 255, 255, 0.05)',
+                            border: licenseStatus?.isPro
+                                ? '1px solid rgba(255, 215, 0, 0.3)'
+                                : '1px solid transparent',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <div>
+                            <div style={{ fontWeight: 600, color: licenseStatus?.isPro ? '#ffd700' : 'white' }}>
+                                {licenseStatus?.isPro ? '✨ Pro版' : 'Free版'}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                                {licenseStatus?.isPro
+                                    ? 'ライセンス認証済み'
+                                    : 'クリックしてPro版にアップグレード'}
+                            </div>
+                        </div>
+                        <span style={{ color: '#00e5ff', fontSize: '1.2rem' }}>→</span>
+                    </div>
+                </div>
+
                 <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                         onClick={onClose}
@@ -122,7 +163,7 @@ export default function SettingsModal({ isOpen, onClose, config, onConfigChange 
                             cursor: 'pointer'
                         }}
                     >
-                        Close
+                        閉じる
                     </button>
                 </div>
             </div>

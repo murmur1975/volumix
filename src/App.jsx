@@ -4,6 +4,7 @@ import ControlPanel from './components/ControlPanel'
 import ProgressBar from './components/ProgressBar'
 import FileTable from './components/FileTable'
 import SettingsModal from './components/SettingsModal'
+import LicenseModal from './components/LicenseModal'
 
 function App() {
   // Multi-file state
@@ -21,8 +22,23 @@ function App() {
     customText: '_volumix'
   })
 
+  // License state
+  const [isLicenseOpen, setIsLicenseOpen] = useState(false)
+  const [licenseStatus, setLicenseStatus] = useState({ isPro: false, rateLimit: null })
+
   // Generate unique ID
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+  // Load license status on mount
+  useEffect(() => {
+    const loadLicenseStatus = async () => {
+      if (window.electronAPI && window.electronAPI.getLicenseStatus) {
+        const status = await window.electronAPI.getLicenseStatus()
+        setLicenseStatus(status)
+      }
+    }
+    loadLicenseStatus()
+  }, [])
 
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.onProgress) {
@@ -97,8 +113,25 @@ function App() {
   const handleStart = async () => {
     const selectedFiles = files.filter(f => f.selected && f.status === 'ready');
     if (selectedFiles.length === 0) {
-      setMessage('No files selected for processing');
+      setMessage('処理するファイルが選択されていません');
       return;
+    }
+
+    // Check Free version restrictions
+    if (!licenseStatus.isPro && selectedFiles.length > 1) {
+      setMessage('Free版は一度に1ファイルまでです。Pro版にアップグレードすると無制限になります。');
+      setIsLicenseOpen(true);
+      return;
+    }
+
+    // Check and record rate limit (Free version only)
+    if (!licenseStatus.isPro) {
+      const rateLimitResult = await window.electronAPI.recordFileProcessing(selectedFiles.length);
+      if (!rateLimitResult.allowed) {
+        const resetTime = rateLimitResult.resetAt ? new Date(rateLimitResult.resetAt).toLocaleTimeString() : '';
+        setMessage(`Rate Limit: 30分間に10ファイルまでです。${resetTime ? `リセット時刻: ${resetTime}` : ''}`);
+        return;
+      }
     }
 
     setStatus('processing');
@@ -159,6 +192,8 @@ function App() {
   // Check if any file is processing
   const isProcessing = files.some(f => f.status === 'processing' || f.status === 'analyzing');
   const hasSelectedFiles = files.some(f => f.selected && f.status === 'ready');
+  const selectedCount = files.filter(f => f.selected && f.status === 'ready').length;
+  const exceedsLimit = !licenseStatus.isPro && selectedCount > 1;
 
   return (
     <div className="container" style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
@@ -173,6 +208,15 @@ function App() {
           WebkitTextFillColor: 'transparent'
         }}>
           Volumix
+          {licenseStatus.isPro && (
+            <span style={{
+              fontSize: '0.5em',
+              background: 'linear-gradient(to right, #ffd700, #ff8c00)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginLeft: '0.5rem'
+            }}>Pro</span>
+          )}
         </h1>
 
         {/* Settings Button */}
@@ -211,6 +255,7 @@ function App() {
         lkfs={lkfs} setLkfs={setLkfs}
         sampleRate={sampleRate} setSampleRate={setSampleRate}
         disabled={isProcessing}
+        isPro={licenseStatus.isPro}
       />
 
       <ProgressBar progress={progress} status={status} />
@@ -228,13 +273,47 @@ function App() {
         </div>
       )}
 
+      {/* License upgrade banner for Free users */}
+      {!licenseStatus.isPro && (
+        <div
+          onClick={() => setIsLicenseOpen(true)}
+          style={{
+            marginTop: '1rem',
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, rgba(0,229,255,0.1), rgba(41,121,255,0.1))',
+            border: '1px solid rgba(0,229,255,0.3)',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            transition: 'all 0.2s'
+          }}
+        >
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>
+            🚀 Pro版で複数ファイルの一括処理が可能に
+          </span>
+          <span style={{ color: '#00e5ff', fontSize: '0.85rem' }}>アップグレード →</span>
+        </div>
+      )}
+
       <div style={{ marginTop: '2rem', textAlign: 'center' }}>
         <button
           onClick={handleStart}
-          disabled={!hasSelectedFiles || isProcessing}
-          style={{ width: '100%', fontSize: '1.2rem', padding: '1rem' }}
+          disabled={!hasSelectedFiles || isProcessing || exceedsLimit}
+          style={{
+            width: '100%',
+            fontSize: '1.2rem',
+            padding: '1rem',
+            opacity: exceedsLimit ? 0.5 : 1
+          }}
         >
-          {isProcessing ? 'Processing...' : `Start Processing${hasSelectedFiles ? ` (${files.filter(f => f.selected && f.status === 'ready').length})` : ''}`}
+          {isProcessing
+            ? 'Processing...'
+            : exceedsLimit
+              ? `Free版: 一度に1ファイルまで`
+              : `処理開始${hasSelectedFiles ? ` (${selectedCount})` : ''}`
+          }
         </button>
       </div>
 
@@ -243,6 +322,18 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         config={namingConfig}
         onConfigChange={setNamingConfig}
+        onOpenLicense={() => {
+          setIsSettingsOpen(false);
+          setIsLicenseOpen(true);
+        }}
+        licenseStatus={licenseStatus}
+      />
+
+      <LicenseModal
+        isOpen={isLicenseOpen}
+        onClose={() => setIsLicenseOpen(false)}
+        licenseStatus={licenseStatus}
+        onStatusChange={setLicenseStatus}
       />
     </div>
   )

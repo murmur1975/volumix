@@ -3,7 +3,8 @@ import React from 'react';
 export default function ControlPanel({
     lkfs, setLkfs,
     sampleRate, setSampleRate,
-    disabled
+    disabled,
+    isPro = false
 }) {
     return (
         <div className="glass-panel controls">
@@ -88,9 +89,9 @@ export default function ControlPanel({
                 <div>
                     <span className="label">Sampling Rate</span>
                     <select
-                        value={sampleRate}
+                        value={isPro ? sampleRate : ''}
                         onChange={(e) => setSampleRate(e.target.value)}
-                        disabled={disabled}
+                        disabled={disabled || !isPro}
                         style={{
                             background: 'rgba(0,0,0,0.3)',
                             border: '1px solid rgba(255,255,255,0.1)',
@@ -98,15 +99,21 @@ export default function ControlPanel({
                             borderRadius: '8px',
                             color: 'white',
                             width: '100%',
-                            cursor: 'pointer',
-                            boxSizing: 'border-box'
+                            cursor: isPro ? 'pointer' : 'not-allowed',
+                            boxSizing: 'border-box',
+                            opacity: isPro ? 1 : 0.6
                         }}
                     >
                         <option value="">Original</option>
-                        <option value="44100">44.1 kHz</option>
-                        <option value="48000">48 kHz</option>
-                        <option value="96000">96 kHz</option>
+                        <option value="44100" disabled={!isPro}>44.1 kHz {!isPro ? '(Pro版)' : ''}</option>
+                        <option value="48000" disabled={!isPro}>48 kHz {!isPro ? '(Pro版)' : ''}</option>
+                        <option value="96000" disabled={!isPro}>96 kHz {!isPro ? '(Pro版)' : ''}</option>
                     </select>
+                    {!isPro && (
+                        <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '8px' }}>
+                            サンプリングレート変更はPro版で利用可能
+                        </p>
+                    )}
                 </div>
 
             </div>
