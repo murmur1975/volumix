@@ -12,12 +12,14 @@ export const resources = {
         // File dropper
         dropHint: 'ここにMP4ファイルをドラッグ＆ドロップ',
         orClickToSelect: 'またはクリックしてファイルを選択',
+        dropMp4Only: 'MP4ファイルをドロップしてください',
+        couldNotGetPath: 'ファイルパスを取得できませんでした。クリックして選択してください。',
 
         // Control panel
-        targetLoudness: 'Target Loudness',
-        samplingRate: 'Sampling Rate',
-        bitrate: 'Bitrate',
-        original: 'Original',
+        targetLoudness: '目標ラウドネス',
+        samplingRate: 'サンプリングレート',
+        bitrate: 'ビットレート',
+        original: 'オリジナル',
         vbrAuto: 'VBR (自動)',
         proOnly: 'Pro',
         proOnlyFull: 'Pro限定',
@@ -67,14 +69,14 @@ export const resources = {
         purchaseHere: 'こちらから購入 →',
 
         // Settings modal
-        outputSettings: 'Output Settings',
-        filenameSuffix: 'FILENAME SUFFIX',
-        targetLkfsOption: 'Target LKFS',
-        targetLkfsDesc: 'Append target value (e.g. _-14.0LKFS)',
-        customTextOption: 'Custom Text',
-        customTextDesc: 'Append fixed text (e.g. _volumix)',
-        timestampOption: 'Timestamp',
-        timestampDesc: 'Append date & time (e.g. _250109-1230)',
+        outputSettings: '出力設定',
+        filenameSuffix: 'ファイル名サフィックス',
+        targetLkfsOption: '目標LKFS値',
+        targetLkfsDesc: '目標値を追加（例: _-14.0LKFS）',
+        customTextOption: 'カスタムテキスト',
+        customTextDesc: '固定テキストを追加（例: _volumix）',
+        timestampOption: 'タイムスタンプ',
+        timestampDesc: '日時を追加（例: _250109-1230）',
         close: '閉じる',
     },
 
@@ -88,6 +90,8 @@ export const resources = {
         // File dropper
         dropHint: 'Drag & drop MP4 files here',
         orClickToSelect: 'or click to select files',
+        dropMp4Only: 'Please drop MP4 file(s)',
+        couldNotGetPath: 'Could not get file paths. Please use click to select.',
 
         // Control panel
         targetLoudness: 'Target Loudness',

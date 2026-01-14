@@ -49,7 +49,7 @@ export default function SettingsModal({ isOpen, onClose, config, onConfigChange 
                 {/* Language Selection */}
                 <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>
-                        🌐 LANGUAGE
+                        🌐 {lang === 'ja' ? '言語' : 'LANGUAGE'}
                     </label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {availableLanguages.map(langCode => (
@@ -184,7 +184,7 @@ export default function SettingsModal({ isOpen, onClose, config, onConfigChange 
                             background: 'var(--primary-linear)',
                             border: 'none',
                             borderRadius: '8px',
-                            color: 'black',
+                            color: 'white',
                             fontWeight: 'bold',
                             cursor: 'pointer'
                         }}

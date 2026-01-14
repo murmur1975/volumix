@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useI18n } from '../i18n';
 
 export default function FileDropper({ onFilesSelected, multiple = true }) {
+    const { t } = useI18n();
     const [isDragOver, setIsDragOver] = useState(false);
 
     const handleDrop = useCallback((e) => {
@@ -11,7 +13,7 @@ export default function FileDropper({ onFilesSelected, multiple = true }) {
         const mp4Files = droppedFiles.filter(f => f.name.toLowerCase().endsWith('.mp4'));
 
         if (mp4Files.length === 0) {
-            alert('Please drop MP4 file(s)');
+            alert(t('dropMp4Only'));
             return;
         }
 
@@ -37,9 +39,9 @@ export default function FileDropper({ onFilesSelected, multiple = true }) {
             console.log('[Renderer] Dropped files:', filesWithPaths);
             onFilesSelected(filesWithPaths);
         } else {
-            alert('Could not get file paths. Please use click to select.');
+            alert(t('couldNotGetPath'));
         }
-    }, [onFilesSelected]);
+    }, [onFilesSelected, t]);
 
     const handleDragOver = (e) => {
         e.preventDefault();
@@ -94,10 +96,10 @@ export default function FileDropper({ onFilesSelected, multiple = true }) {
                 📂
             </div>
             <h3 style={{ margin: '0.5rem 0' }}>
-                {multiple ? 'Click or Drag & Drop MP4 Videos' : 'Click or Drag & Drop MP4 Video'}
+                {t('dropHint')}
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
-                {multiple ? 'Multiple files supported' : 'Single file only'}
+                {t('orClickToSelect')}
             </p>
         </div>
     );

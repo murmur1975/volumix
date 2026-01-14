@@ -338,7 +338,7 @@ function App() {
           disabled={!hasSelectedFiles || isProcessing}
           style={{ width: '100%', fontSize: '1.2rem', padding: '1rem' }}
         >
-          {isProcessing ? 'Processing...' : `Start Processing${hasSelectedFiles ? ` (${files.filter(f => f.selected && f.status === 'ready').length})` : ''}`}
+          {isProcessing ? t('processing') : `${t('startProcessing')}${hasSelectedFiles ? ` (${files.filter(f => f.selected && f.status === 'ready').length})` : ''}`}
         </button>
       </div>
 
