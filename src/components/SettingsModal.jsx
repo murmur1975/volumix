@@ -141,6 +141,41 @@ export default function SettingsModal({ isOpen, onClose, config, onConfigChange 
                     )}
                 </div>
 
+                {/* Support / Contact Section */}
+                <div style={{
+                    marginTop: '1.5rem',
+                    paddingTop: '1.5rem',
+                    borderTop: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                    <a
+                        href="https://docs.google.com/forms/d/e/1FAIpQLSeL7BdNlmsg-FxlH0Oiyhk5K3NrIO9pACK-bPqf6BoOLrBSsg/viewform"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '12px',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '8px',
+                            color: 'white',
+                            textDecoration: 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <span style={{ fontSize: '1.2rem' }}>📩</span>
+                        <div>
+                            <div style={{ fontWeight: 600 }}>
+                                {lang === 'ja' ? 'お問い合わせ・不具合報告' : 'Contact / Bug Report'}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                                {lang === 'ja' ? 'ご質問やバグの報告はこちら' : 'Questions or bug reports'}
+                            </div>
+                        </div>
+                        <span style={{ marginLeft: 'auto', color: '#00e5ff' }}>→</span>
+                    </a>
+                </div>
+
                 <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                         onClick={onClose}
