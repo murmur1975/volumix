@@ -10,8 +10,8 @@ export function I18nProvider({ children }) {
 
     // Checkout URLs for different languages
     const checkoutUrl = lang === 'ja'
-        ? 'https://volumix.lemonsqueezy.com/buy/volumix-jp'  // TODO: Replace with actual JP checkout URL
-        : 'https://volumix.lemonsqueezy.com/buy/volumix';     // TODO: Replace with actual EN checkout URL
+        ? 'https://tryxlab.lemonsqueezy.com/checkout/buy/6713bd8c-8b0e-4c53-8788-9bfd1796b3ce'
+        : 'https://tryxlab.lemonsqueezy.com/checkout/buy/d24d927e-7186-493d-a7e2-2af0860f7918';
 
     const value = {
         lang,
